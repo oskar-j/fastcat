@@ -2,6 +2,7 @@ import unittest
 
 import fastcat
 
+
 class FastcatTests(unittest.TestCase):
 
     def test_narrower(self):

@@ -4,11 +4,13 @@ import os
 import re
 import bz2
 import urllib
-
+from urllib import request, parse
 import redis
+from lang import languages
 
 skos_file = "skos.nt.bz2"
-ntriple_pattern = re.compile('^<(.+)> <(.+)> <(.+)> \.\n$') 
+ntriple_pattern = re.compile('^<(.+)> <(.+)> <(.+)> \.\n$')
+
 
 class FastCat(object):
 
@@ -29,16 +31,20 @@ class FastCat(object):
         """
         return list(self.db.smembers("n:%s" % cat))
 
-    def load(self):
+    def load(self, language='en', verbose=False):
         if self.db.get("loaded-skos"):
             return 
 
         if not os.path.isfile(skos_file):
-            self.download()
+            self.download(language, verbose)
 
-        print "loading %s" % skos_file
-        for line in bz2.BZ2File(skos_file):
-            m = ntriple_pattern.match(line)
+        if verbose:
+            print("Loading {} file".format(skos_file))
+
+        uncompressed = bz2.BZ2File(skos_file).readlines()
+
+        for line in uncompressed:
+            m = ntriple_pattern.match(line.decode('utf-8'))
             
             if not m: 
                 continue
@@ -51,15 +57,29 @@ class FastCat(object):
             broader = self._name(o)
             self.db.sadd("b:%s" % narrower, broader)
             self.db.sadd("n:%s" % broader, narrower)
-            print ("added %s -> %s" % (broader, narrower)).encode('utf-8')
+
+            if verbose > 1:
+                print("Added %s -> %s" % (broader, narrower))
 
         self.db.set("loaded-skos", "1")
 
-    def download(self):
-        print "downloading wikipedia skos file from dbpedia"
-        url = "http://downloads.dbpedia.org/current/en/skos_categories_en.nt.bz2"
-        urllib.urlretrieve(url, skos_file)
+    def download(self, language, verbose):
+        if verbose:
+            print("Downloading Wikipedia SKOS file from DBpedia")
 
-    def _name(self, url):
-        m = re.search("^http://dbpedia.org/resource/Category:(.+)$", url)
-        return urllib.unquote(m.group(1).replace("_", " ")).decode("utf-8")
+        language_normalized = language.lower().replace('_', '-')
+
+        if language in ['en', 'en-uk', 'en-us', 'us-us', 'uk-uk']:
+            url = 'http://downloads.dbpedia.org/current/core/skos_categories_en.ttl.bz2'
+        else:
+            url = 'http://downloads.dbpedia.org/current/core-i18n/{}/skos_categories_{}.tql.bz2'.format(
+                language_normalized, language_normalized)
+
+        request.urlretrieve(url, filename=skos_file)
+
+        if verbose:
+            print("Finished downloading {} file".format(skos_file))
+
+    def _name(self, url_pattern):
+        m = re.search("^http://dbpedia.org/resource/Category:(.+)$", url_pattern)
+        return parse.unquote(m.group(1).replace("_", " "))
