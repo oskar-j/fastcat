@@ -3,10 +3,10 @@
 import os
 import re
 import bz2
-from utils import normalize_language
+from fastcat.utils import normalize_language
 from urllib import request, parse
 import redis
-import lang as languages
+import fastcat.lang as languages
 
 
 skos_file_pattern = "data/skos-%lang%.nt.bz2"

@@ -1,7 +1,14 @@
 import pickle
+import os
+import sys
 
 
-settings_filename = 'redis_ids.pickle'
+try:
+    p = __file__
+except NameError:
+    p = sys.argv[0]
+
+settings_filename = os.path.dirname(os.path.realpath(p)) + '/settings/redis_ids.pickle'
 languages = dict()
 
 
