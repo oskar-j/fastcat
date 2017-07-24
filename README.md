@@ -10,7 +10,11 @@ API](http://en.wikipedia.org/w/api.php). fastcat relies on redis, and a
 file that dbpedia make available based on the Wikipedia MySQL
 [dumps](http://dumps.wikimedia.org/enwiki/latest/).
 
+Attribution
+-----
 
+This software is a fork of [fastcat](https://github.com/edsu/fastcat) tool created by [Ed Summers](https://github.com/edsu). Some changes were made under the *Creative Commons Attribution-ShareAlike 3.0* license, and they are described in commit messages.
+ 
 Usage
 -----
 
