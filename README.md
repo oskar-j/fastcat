@@ -13,7 +13,7 @@ API](http://en.wikipedia.org/w/api.php). Fastcat relies on Redis and the
 Attribution
 -----
 
-This software is a fork of [fastcat](https://github.com/edsu/fastcat) tool created by [Ed Summers](https://github.com/edsu). Some changes were made under the *Creative Commons Attribution-ShareAlike 3.0* license, and they are described in commit messages.
+This software is a fork of [fastcat](https://github.com/edsu/fastcat) tool created by [Ed Summers](https://github.com/edsu). Some changes were made under the *Creative Commons Attribution-ShareAlike 3.0* license, and they are described in commit messages. Major changes are porting the code to Python 3 as well as adding support for more languages.
  
 Usage
 -----
@@ -56,12 +56,12 @@ On Windows:
 
 > Please refer to instruction on installing [Vagrant Redis](https://github.com/ServiceStack/redis-windows)
 
-### Installing module
+### Installing the module
 
 If you are ready, installing Fastcat is pretty straightforward:
 
 ```
-$ pip install git+https://github.com/takuti/fastcat.git
+$ pip install git+https://github.com/oskar-j/fastcat.git
 ```
 
 Usage
