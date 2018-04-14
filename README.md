@@ -1,14 +1,14 @@
 fastcat
 =======
 
-fastcat is a little Python library for quickly looking up broader/narrower 
+Fastcat is a little Python library for quickly looking up broader/narrower 
 relations in Wikipedia categories locally. The idea is that fastcat can be
 useful in situations where you need to rapidly lookup category relations,
 but don't want to hammer on the [Wikipedia
-API](http://en.wikipedia.org/w/api.php). fastcat relies on redis, and a 
-[SKOS](http://downloads.dbpedia.org/current/en/skos_categories_en.nt.bz2) 
-file that dbpedia make available based on the Wikipedia MySQL
-[dumps](http://dumps.wikimedia.org/enwiki/latest/).
+API](http://en.wikipedia.org/w/api.php). Fastcat relies on Redis and the 
+[SKOS file](http://downloads.dbpedia.org/current/en/skos_categories_en.nt.bz2) that DBpedia makes available basing on the Wikipedia [MySQL dumps](http://dumps.wikimedia.org/enwiki/latest/).
+
+![fastcat logo](http://datageek.pl/github/fastcat_logo-small.png)
 
 Attribution
 -----
@@ -18,8 +18,8 @@ This software is a fork of [fastcat](https://github.com/edsu/fastcat) tool creat
 Usage
 -----
 
-The first time you import fastcat you'll need to populate your redis database
-with the category data from dbpedia. To do that instantiate a FastCat object
+The first time you import fastcat you'll need to populate your Redis database
+with the category data from DBpedia. To do that instantiate a FastCat object
 and call the `load` method. After that you can use it to do lookups.
 
 ```python
