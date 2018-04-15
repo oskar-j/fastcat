@@ -1,6 +1,8 @@
 fastcat
 =======
 
+[![Build Status](https://travis-ci.org/oskar-j/fastcat.svg?branch=master)](https://travis-ci.org/oskar-j/fastcat)
+
 Fastcat is a little Python library for quickly looking up broader/narrower 
 relations in Wikipedia categories locally. The idea is that fastcat can be
 useful in situations where you need to rapidly lookup category relations,
