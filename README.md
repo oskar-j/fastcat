@@ -13,7 +13,7 @@ API](http://en.wikipedia.org/w/api.php). Fastcat relies on Redis and the
 Attribution
 -----
 
-This software is a fork of [fastcat](https://github.com/edsu/fastcat) tool created by [Ed Summers](https://github.com/edsu). Some changes were made under the *Creative Commons Attribution-ShareAlike 3.0* license, and they are described in commit messages.
+This software is a fork of [fastcat](https://github.com/edsu/fastcat) tool created by [Ed Summers](https://github.com/edsu). Some changes were made under the *Creative Commons Attribution-ShareAlike 3.0* license, and they are described in commit messages. Major changes are porting the code to Python 3 as well as adding support for more languages.
  
 Usage
 -----
@@ -36,13 +36,37 @@ and call the `load` method. After that you can use it to do lookups.
 Install
 -------
 
-To install and load fastcat on Ubuntu try this:
+### Redis installation
 
-1. apt-get install redis-server virtualenvwrapper git-core
-1. git clone git://github.com/edsu/fastcat.git
-1. cd fastcat
-1. mkvirtualenv fastcat
-1. pip install -r requirements.pip
+You first need to setup Redis server on your machine as follows.
+
+On Mac:
+
+```
+$ brew install redis
+```
+
+On Linux:
+
+```
+$ sudo apt-get install redis-server
+```
+
+On Windows:
+
+> Please refer to instruction on installing [Vagrant Redis](https://github.com/ServiceStack/redis-windows)
+
+### Installing the module
+
+If you are ready, installing Fastcat is pretty straightforward:
+
+```
+$ pip install git+https://github.com/oskar-j/fastcat.git
+```
+
+Usage
+-------
+
 1. ./load.py
 1. brew a pot of coffee while the data is downloaded and loaded into redis
 1. profit?
