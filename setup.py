@@ -1,14 +1,35 @@
-from distutils.core import setup
+DISTNAME = 'fastcat'
+DESCRIPTION = 'Navigate Wikipedia categories quickly in a local redis instance'
+AUTHOR = 'Ed Summers'
+AUTHOR_EMAIL = 'ehs@pobox.com'
+MAINTAINER = 'Oskar Jarczyk'
+MAINTAINER_EMAIL = 'oskar.jarczyk@gmail.com'
+LICENSE = 'CC BY-SA 3.0'
+URL = 'https://github.com/oskar-j/fastcat'
+VERSION = '0.1'
+KEYWORDS = ['wikipedia', 'categories', 'wiki-api', 'knowledge engineering']
+CLASSIFIERS = ['Development Status :: 3 - Alpha', ]
 
-setup(
-  name='fastcat',
-  packages=['fastcat'],  # this must be the same as the name above
-  version='0.1',
-  description='Navigate wikipedia categories quickly in a local redis instance',
-  author='Oskar Jarczyk',
-  author_email='oskar.jarczyk@gmail.com',
-  url='https://github.com/oskar-j/fastcat',  # use the URL to the github repo
-  download_url='https://github.com/oskar-j/fastcat/archive/0.1.tar.gz',  # I'll explain this in a second
-  keywords=['wikipedia', 'categories', 'wiki-api', 'knowledge engineering'],  # arbitrary keywords
-  classifiers=[],
-)
+
+def setup_package():
+    from setuptools import setup, find_packages
+
+    metadata = dict(
+        name=DISTNAME,
+        description=DESCRIPTION,
+        version=VERSION,
+        classifiers=CLASSIFIERS,
+        author=AUTHOR,
+        author_email=AUTHOR_EMAIL,
+        maintainer=MAINTAINER,
+        maintainer_email=MAINTAINER_EMAIL,
+        license=LICENSE,
+        url=URL,
+        packages=find_packages(exclude=['*tests*']),
+        install_requires=['redis'])
+
+    setup(**metadata)
+
+
+if __name__ == '__main__':
+    setup_package()
