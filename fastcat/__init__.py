@@ -19,6 +19,9 @@ except NameError:
 data_location = os.path.join(os.path.dirname(os.path.realpath(p)), 'data')
 if not os.path.isdir(data_location):
     os.makedirs(data_location)
+settings_location = os.path.join(os.path.dirname(os.path.realpath(p)), 'settings')
+if not os.path.isdir(settings_location):
+    os.makedirs(settings_location)
 
 skos_file_pattern = os.path.join(os.path.dirname(os.path.realpath(p)), 'data', 'skos-%lang%.nt.bz2')
 
