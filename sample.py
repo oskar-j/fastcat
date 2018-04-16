@@ -1,4 +1,4 @@
-from fastcat import fastcat
+import fastcat
 
 f = fastcat.FastCat(language='pt')
 

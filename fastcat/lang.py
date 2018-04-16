@@ -8,7 +8,7 @@ try:
 except NameError:
     p = sys.argv[0]
 
-settings_filename = os.path.dirname(os.path.realpath(p)) + '/settings/redis_ids.pickle'
+settings_filename = os.path.join(os.path.dirname(os.path.realpath(p)), 'settings', 'redis_ids.pickle')
 languages = dict()
 
 

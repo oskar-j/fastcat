@@ -56,7 +56,8 @@ $ sudo apt-get install redis-server
 
 On Windows:
 
-> Please refer to instruction on installing [Vagrant Redis](https://github.com/ServiceStack/redis-windows)
+Please refer to instruction on installing [Vagrant Redis](https://github.com/ServiceStack/redis-windows). You will
+need an Ubuntu installation on your Windows, more information can be found here: [Install your Linux Distribution of Choice](https://docs.microsoft.com/pl-pl/windows/wsl/install-win10)
 
 ### Installing the module
 
