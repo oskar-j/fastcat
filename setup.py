@@ -6,7 +6,7 @@ MAINTAINER = 'Oskar Jarczyk'
 MAINTAINER_EMAIL = 'oskar.jarczyk@gmail.com'
 LICENSE = 'CC BY-SA 3.0'
 URL = 'https://github.com/oskar-j/fastcat'
-VERSION = '0.1.1'
+VERSION = '0.1.2'
 KEYWORDS = ['wikipedia', 'categories', 'wiki-api', 'knowledge engineering']
 CLASSIFIERS = ['Development Status :: 3 - Alpha', ]
 

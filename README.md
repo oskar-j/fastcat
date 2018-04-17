@@ -27,11 +27,11 @@ and call the `load` method. After that you can use it to do lookups.
 ```python
 >>> import fastcat
 >>> f = fastcat.FastCat()
->>> f.load()
+>>> f.load()  # brew a pot of coffee while the data is downloaded and loaded into redis
 ...
->>> print fastcat.broader("Computer programming")
+>>> print(f.broader("Computer programming"))
 ['Software engineering', 'Computing']
->>> print fastcat.narrower("Computer programming")
+>>> print(f.narrower("Computer programming"))
 ['Programming idioms', 'Programming languages', 'Concurrent computing', 'Source code', 'Refactoring', 'Data structures', 'Programming games', 'Computer programmers', 'Version control', 'Anti-patterns', 'Programming constructs', 'Algorithms', 'Web Services tools', 'Programming paradigms', 'Software optimization', 'Debugging', 'Computer programming tools', 'Computer libraries', 'Programming contests', 'Archive networks', 'Self-hosting software', 'Educational abstract machines', 'Software design patterns', 'Computer arithmetic']
 ```
 
@@ -67,12 +67,14 @@ If you are ready, installing Fastcat is pretty straightforward:
 $ pip install git+https://github.com/oskar-j/fastcat.git
 ```
 
-Usage
+Remarks
 -------
 
-1. ./load.py
-1. brew a pot of coffee while the data is downloaded and loaded into redis
-1. profit?
+1. I'd like some feedback from you about this project
+2. DBpedia SKOS file is prone to constant change
+  * *loading data* in fastcat can stop working in some distant future
+  * it takes around 40 MB of your transfer (size depends on selected language)
+3. According to Travis, it works with PyPy as well
 
 License
 -------

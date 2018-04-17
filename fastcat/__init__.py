@@ -4,7 +4,7 @@ import os
 import sys
 import re
 import bz2
-from fastcat.utils import normalize_language, printProgressBar
+from fastcat.utils import normalize_language, print_progress_bar
 from urllib import request, parse
 import redis
 import fastcat.lang as languages
@@ -122,14 +122,21 @@ class FastCat(FastCatBase):
         """
         return list(self.db.smembers("n:%s" % cat))
 
+    def _is_loaded(self, language, verbose=False):
+        if self.db.get("loaded-skos"):
+            if verbose:
+                print('Wikipedia SKOS for {} language is already loaded to Redis!'.format(language))
+            return True
+        else:
+            return False
+
     def load(self, language=None, verbose=False):
         """Fill Redis with Wikipedia SKOS data"""
         if language is None:
             language = self.get_current_language()
 
-        if self.db.get("loaded-skos"):
-            if verbose:
-                print('Wikipedia SKOS for {} language is already loaded to Redis!'.format(language))
+        if self._is_loaded(language, verbose):
+            print('Loading aborted (language already exists)')
             return
 
         skos_file = skos_file_pattern.replace('%lang%', language)
@@ -152,7 +159,7 @@ class FastCat(FastCatBase):
 
         for i, line in enumerate(uncompressed):
 
-            printProgressBar(i, l, prefix='Progress:', suffix='Complete', length=50)
+            print_progress_bar(i, l, prefix='Progress:', suffix='Complete', length=50)
 
             if language == 'en':
                 m = ntriple_pattern.match(line.decode('utf-8'))
@@ -182,11 +189,18 @@ class FastCat(FastCatBase):
             narrower = self._name(s, language)
             broader = self._name(o, language)
 
-            if verbose > 1:
-                print('Narrower: {}, broader: {}'.format(narrower, broader))
+            try:
 
-            self.db.sadd("b:%s" % narrower, broader)
-            self.db.sadd("n:%s" % broader, narrower)
+                if verbose > 1:
+                    print('Narrower: {}, broader: {}'.format(narrower, broader))
+
+                self.db.sadd("b:%s" % narrower, broader)
+                self.db.sadd("n:%s" % broader, narrower)
+
+            except UnicodeEncodeError as uee:
+
+                print('Narrower: {}, broader: {}'.format(narrower.encode("utf-8"), broader.encode("utf-8")))
+                raise uee
 
             if verbose > 1:
                 print("Added %s -> %s" % (broader, narrower))
