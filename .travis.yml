@@ -15,8 +15,10 @@ install:
 before_script:
   - sudo redis-server &
 
+# command to run tests
 script:
-  - travis_wait nosetests . -v
+  # - travis_wait nosetests . -v
+  - pytest
 
 notifications:
 email: false
