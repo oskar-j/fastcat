@@ -67,14 +67,15 @@ If you are ready, installing Fastcat is pretty straightforward:
 $ pip install git+https://github.com/oskar-j/fastcat.git
 ```
 
-Remarks
+Additional remarks
 -------
 
-1. I'd like some feedback from you about this project
-2. DBpedia SKOS file is prone to constant change
+1. It's still in early stage of development, please share some feedback with me
+2. DBpedia SKOS file is prone to constant change, which means:
   * *loading data* in fastcat can stop working in some distant future
   * it takes around 40 MB of your transfer (size depends on selected language)
 3. According to Travis, it works with PyPy as well
+4. You can try to add more SKOS languages, but they're not guaranteed to work due to differences in the file structure
 
 License
 -------

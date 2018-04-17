@@ -18,7 +18,8 @@ before_script:
 # command to run tests
 script:
   # - travis_wait nosetests . -v
-  - pytest
+  - nosetests . --with-coverage -v
+  # - pytest
 
 notifications:
 email: false
