@@ -123,6 +123,7 @@ class FastCat(FastCatBase):
         return list(self.db.smembers("n:%s" % cat))
 
     def _is_loaded(self, language, verbose=False):
+        # TODO: process depending on language
         if self.db.get("loaded-skos"):
             if verbose:
                 print('Wikipedia SKOS for {} language is already loaded to Redis!'.format(language))
