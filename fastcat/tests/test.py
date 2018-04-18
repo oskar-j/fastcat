@@ -30,12 +30,12 @@ class FastcatTestsPortuguese(unittest.TestCase):
     def test_narrower(self):
         self.assertTrue(self.f._is_loaded(language='pt'),
                         msg="Portuguese-language Wikipedia successfully loaded?")
-        self.assertTrue("Linguagens de programação funcionais‎" in self.f.narrower("Programação_funcional"))
+        self.assertTrue(b'Computadores' in self.f.narrower("Hardware"))
 
     def test_broader(self):
         self.assertTrue(self.f._is_loaded(language='pt'),
                         msg="Portuguese-language Wikipedia successfully loaded?")
-        self.assertTrue("Ciência da computação" in self.f.broader("Hardware"))
+        self.assertTrue(b'Hardware' in self.f.broader("Placas de som"))
 
 
 if __name__ == "__main__":
