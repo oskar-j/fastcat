@@ -130,7 +130,7 @@ class FastCat(FastCatBase):
         else:
             return False
 
-    def load(self, language=None, verbose=False):
+    def load(self, language=None, verbose=False, progress_bar=True):
         """Fill Redis with Wikipedia SKOS data"""
         if language is None:
             language = self.get_current_language()
@@ -159,7 +159,8 @@ class FastCat(FastCatBase):
 
         for i, line in enumerate(uncompressed):
 
-            print_progress_bar(i, l, prefix='Progress:', suffix='Complete', length=50)
+            if progress_bar:
+                print_progress_bar(i, l, prefix='Progress:', suffix='Complete', length=50)
 
             if language == 'en':
                 m = ntriple_pattern.match(line.decode('utf-8'))
