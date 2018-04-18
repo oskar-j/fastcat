@@ -12,12 +12,12 @@ class FastcatTests(unittest.TestCase):
     def test_narrower(self):
         self.assertTrue(self.f._is_loaded(language='en'),
                         msg="English-language Wikipedia successfully loaded?")
-        self.assertTrue("Functional languages" in self.f.narrower("Functional programming"))
+        self.assertTrue(b'Functional languages' in self.f.narrower("Functional programming"))
 
     def test_broader(self):
         self.assertTrue(self.f._is_loaded(language='en'),
                         msg="English-language Wikipedia successfully loaded?")
-        self.assertTrue("Computing" in self.f.broader("Computer programming"))
+        self.assertTrue(b'Software engineering' in self.f.broader("Computer programming"))
 
 
 class FastcatTestsPortuguese(unittest.TestCase):
