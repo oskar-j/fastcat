@@ -70,14 +70,16 @@ $ pip install git+https://github.com/oskar-j/fastcat.git
 Q&A
 -------
 
-##### How much is is tested?
-###### It's still in early stage of development, please share some feedback with me
-##### What are biggest drawbacks of fastcat?
-###### DBpedia SKOS file is prone to constant change, which means: a) *loading data* in fastcat can stop working in some distant future, b) it takes around 40 MB of your transfer (size depends on selected language)
-##### Which Python versions are supported?
-###### Basically all Python 3+ versions. According to Travis, it works with PyPy as well.
-##### Which languages are supported?
-###### Currently only English and Portuguese languages are tested. You can try to add more SKOS languages, but they're not guaranteed to work due to possible differences in the file structure
+#### How much is is tested?
+##### It's still in early stage of development, please share some feedback with me
+#### What are biggest drawbacks of Fastcat?
+##### DBpedia SKOS file is prone to constant change, which means: a) *loading data* in fastcat can stop working in some distant future, b) it takes around 40 MB of your transfer (size depends on selected language)
+#### Which Python versions are supported?
+##### Basically all Python 3+ versions. According to Travis, it works with PyPy as well.
+#### Which languages are supported?
+##### Currently only English and Portuguese languages are tested. You can try to add more SKOS languages, but they're not guaranteed to work due to possible differences in the file structure
+#### What's coming next?
+##### Support of Japanese language as well as adding Fastcat to public python repository.
 
 License
 -------
