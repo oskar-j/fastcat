@@ -2,6 +2,8 @@ fastcat
 =======
 
 [![Build Status](https://travis-ci.org/oskar-j/fastcat.svg?branch=master)](https://travis-ci.org/oskar-j/fastcat)
+[![Pending Pull-Requests](http://githubbadges.herokuapp.com/oskar-j/fastcat/pulls.svg?style=flat)](https://github.com/oskar-j/fastcat/pulls)
+[![Github Issues](http://githubbadges.herokuapp.com/oskar-j/fastcat/issues.svg)](https://github.com/oskar-j/fastcat/issues)
 [![Ebert](https://ebertapp.io/github/oskar-j/fastcat.svg)](https://ebertapp.io/github/oskar-j/fastcat)
 
 Fastcat is a little Python library for quickly looking up broader/narrower 
