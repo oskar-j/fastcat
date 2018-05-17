@@ -26,7 +26,7 @@ def setup_package():
         license=LICENSE,
         url=URL,
         packages=find_packages(exclude=['*tests*']),
-        install_requires=['redis'])
+        install_requires=['redis', 'pycountry'])
 
     setup(**metadata)
 
