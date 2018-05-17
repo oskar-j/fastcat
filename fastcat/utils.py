@@ -1,9 +1,30 @@
 def normalize_language(lang):
     language_normalized = lang.lower().replace('_', '-')
-    if language_normalized in ['en', 'en-uk', 'en-us', 'us-us', 'uk-uk']:
+
+    # ISO 639-1 code for English
+    if language_normalized in ['en', 'en-gb', 'en-us', 'en-ca', 'en-nz']:
         return 'en'
+
+    # ISO 639-2
+    if language_normalized == 'eng':
+        return 'en'
+
+    # ISO 639-1 code for Portuguese
     if language_normalized in ['pt', 'pt-pt', 'pt-br']:
         return 'pt'
+
+    # ISO 639-2
+    if language_normalized == 'por':
+        return 'pt'
+
+    # ISO 639-1 code for Japanese
+    if language_normalized in ['ja', 'ja-jp']:
+        return 'ja'
+
+    # ISO 639-2
+    if language_normalized == 'jpn':
+        return 'ja'
+
     return
 
 

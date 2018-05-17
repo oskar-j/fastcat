@@ -1,6 +1,7 @@
 import pickle
 import os
 import sys
+import pycountry
 
 
 try:
@@ -44,7 +45,7 @@ def _get_next_slot():
 def get_language(slot):
     for key, value in languages.items():
         if value == slot:
-            return key
+            return pycountry.languages.get(alpha_2=key)
 
 
 def get_slot(language):

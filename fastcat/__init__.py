@@ -58,6 +58,8 @@ class FastCatBase(object):
             m = re.search("^http://dbpedia.org/resource/Category:(.+)$", url_pattern)
         elif language == 'pt':
             m = re.search("^http://pt.dbpedia.org/resource/Categoria:(.+)$", url_pattern)
+        elif language == 'ja':
+            m = re.search("^http://ja.dbpedia.org/resource/Category:(.+)$", url_pattern)
         else:
             raise NotImplementedError
         return parse.unquote(m.group(1).replace("_", " "))
@@ -114,13 +116,13 @@ class FastCat(FastCatBase):
         """Pass in a Wikipedia category and get back a list of broader Wikipedia
         categories.
         """
-        return list(self.db.smembers("b:%s" % cat))
+        return [s.decode('utf-8') for s in self.db.smembers("b:%s" % cat)]
 
     def narrower(self, cat):
         """Pass in a Wikipedia category and get back a list of narrower Wikipedia
         categories.
         """
-        return list(self.db.smembers("n:%s" % cat))
+        return [s.decode('utf-8') for s in self.db.smembers("n:%s" % cat)]
 
     def _is_loaded(self, language, verbose=False):
         # TODO: process depending on language
@@ -134,7 +136,7 @@ class FastCat(FastCatBase):
     def load(self, language=None, verbose=False, progress_bar=True):
         """Fill Redis with Wikipedia SKOS data"""
         if language is None:
-            language = self.get_current_language()
+            language = self.get_current_language().alpha_2
 
         if self._is_loaded(language, verbose):
             print('Loading aborted (language already exists)')
