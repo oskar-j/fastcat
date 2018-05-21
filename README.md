@@ -79,7 +79,7 @@ Q&A
 
 #### How much is is tested?
 
-It's still in early stage of development, please share some feedback with me.
+It's still in early stage of development, please share some feedback with me (under the [ticket #7](https://github.com/oskar-j/fastcat/issues/7)).
 
 #### What are biggest drawbacks of Fastcat?
 
@@ -98,7 +98,7 @@ they're not guaranteed to work due to possible differences in the file structure
 #### What's coming next?
 
 Support of Polish, German and Russian languages, as well as adding Fastcat to the public python repository. 
-Exporting n-size tree of categories to a CSV or GraphML file. 
+Exporting n-size tree of categories to a CSV or GraphML file. Experimenting to find out if backward compatibily with Python 2 is possible (through the `six` package). 
 
 License
 -------
