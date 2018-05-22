@@ -1,31 +1,21 @@
+import fastcat.lang as languages
+
+
 def normalize_language(lang):
     language_normalized = lang.lower().replace('_', '-')
 
-    # ISO 639-1 code for English
-    if language_normalized in ['en', 'en-gb', 'en-us', 'en-ca', 'en-nz']:
-        return 'en'
+    for l in languages.available_languages.values():
+        if l.id == language_normalized:
+            # ISO 639-1
+            return l.id
+        elif language_normalized in l.locales:
+            # id and locale pair
+            return l.id
+        elif language_normalized == l.alternate:
+            # ISO 639-2
+            return l.id
 
-    # ISO 639-2
-    if language_normalized == 'eng':
-        return 'en'
-
-    # ISO 639-1 code for Portuguese
-    if language_normalized in ['pt', 'pt-pt', 'pt-br']:
-        return 'pt'
-
-    # ISO 639-2
-    if language_normalized == 'por':
-        return 'pt'
-
-    # ISO 639-1 code for Japanese
-    if language_normalized in ['ja', 'ja-jp']:
-        return 'ja'
-
-    # ISO 639-2
-    if language_normalized == 'jpn':
-        return 'ja'
-
-    return
+    return None
 
 
 # Print iterations progress

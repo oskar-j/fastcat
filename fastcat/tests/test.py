@@ -56,6 +56,24 @@ class FastcatTestsJapanese(unittest.TestCase):
         self.assertTrue('日本の行政区画' in self.f.broader("日本の都道府県"))
 
 
+class FastcatTestsPolish(unittest.TestCase):
+
+    def setUp(self):
+        # Preparing data for unit test
+        self.f = fastcat.FastCat(language="pl")
+        self.f.load(progress_bar=False)
+
+    def test_narrower(self):
+        self.assertTrue(self.f._is_loaded(language='pl'),
+                        msg="Polish-language Wikipedia successfully loaded?")
+        self.assertTrue('Husaria' in self.f.narrower("Jeździectwo"))
+
+    def test_broader(self):
+        self.assertTrue(self.f._is_loaded(language='pl'),
+                        msg="Polish-language Wikipedia successfully loaded?")
+        self.assertTrue('Jeździectwo' in self.f.broader("Husaria"))
+
+
 if __name__ == "__main__":
-    print('Unit testing initiated. Testing languages: en, pt, ja.')
+    print('Unit testing initiated. Testing languages: en, pt, ja, pl.')
     unittest.main()

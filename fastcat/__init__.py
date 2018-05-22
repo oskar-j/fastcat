@@ -7,6 +7,7 @@ import bz2
 from fastcat.utils import normalize_language, print_progress_bar
 from urllib import request, parse
 import redis
+import fastcat.store as store
 import fastcat.lang as languages
 
 
@@ -37,7 +38,7 @@ class FastCatBase(object):
 
         normalized_language = normalize_language(language)
 
-        if normalized_language == 'en':
+        if normalized_language == languages.available_languages['English'].id:
             url = 'http://downloads.dbpedia.org/current/core/skos_categories_en.ttl.bz2'
         else:
             url = 'http://downloads.dbpedia.org/current/core-i18n/{}/skos_categories_{}.tql.bz2'.format(
@@ -54,12 +55,14 @@ class FastCatBase(object):
             print("Finished downloading {} file".format(skos_file))
 
     def _name(self, url_pattern, language):
-        if language == 'en':
+        if language == languages.available_languages['English'].id:
             m = re.search("^http://dbpedia.org/resource/Category:(.+)$", url_pattern)
-        elif language == 'pt':
+        elif language == languages.available_languages['Portuguese'].id:
             m = re.search("^http://pt.dbpedia.org/resource/Categoria:(.+)$", url_pattern)
-        elif language == 'ja':
+        elif language == languages.available_languages['Japanese'].id:
             m = re.search("^http://ja.dbpedia.org/resource/Category:(.+)$", url_pattern)
+        elif language == languages.available_languages['Polish'].id:
+            m = re.search("^http://pl.dbpedia.org/resource/Kategoria:(.+)$", url_pattern)
         else:
             raise NotImplementedError
         return parse.unquote(m.group(1).replace("_", " "))
@@ -71,7 +74,7 @@ class FastCat(FastCatBase):
 
         super(FastCatBase, self).__init__()
         # Load most recent language-redis mapping
-        languages.load_settings()
+        store.load_settings()
 
         # Initialize redis client object
         if db is None:
@@ -79,7 +82,7 @@ class FastCat(FastCatBase):
             if language is None:
 
                 # Check if language-redis mapping is ok
-                assert languages.languages.keys().__contains__('en')
+                assert store.languages.keys().__contains__('en')
 
                 # Initialize connection for English dataset
                 db = redis.Redis()  # default is db=0
@@ -89,28 +92,33 @@ class FastCat(FastCatBase):
                 normalized_language = normalize_language(language)
 
                 try:
-                    db = redis.Redis(db=languages.get_slot(normalized_language))
+                    db = redis.Redis(db=store.get_slot(normalized_language))
                 except ValueError:
-                    db = redis.Redis(db=languages.save_settings(normalized_language))
+                    db = redis.Redis(db=store.save_settings(normalized_language))
 
         # There must be always only one redis client
         self.db = db
 
     def switch_language(self, language):
-        """Switch language on an existing fastcat object"""
+        """Switch language on an existing FastCat object"""
         try:
 
-            slot = languages.get_slot(language)
+            slot = store.get_slot(language)
             self.db = redis.Redis(db=slot)
         except ValueError:
 
-            slot = languages.save_settings(language)
+            slot = store.save_settings(language)
             self.db = redis.Redis(db=slot)
             self.load(language)
 
     def get_current_language(self):
         """Get current language"""
-        return languages.get_language(slot=self.db.connection_pool.connection_kwargs['db'])
+        return store.get_language(slot=self.db.connection_pool.connection_kwargs['db'])
+
+    @staticmethod
+    def get_supported_languages():
+        """Get all supported languages"""
+        return languages.available_languages.keys()
 
     def broader(self, cat):
         """Pass in a Wikipedia category and get back a list of broader Wikipedia
@@ -165,7 +173,7 @@ class FastCat(FastCatBase):
             if progress_bar:
                 print_progress_bar(i, l, prefix='Progress:', suffix='Complete', length=50)
 
-            if language == 'en':
+            if language == languages.available_languages['English'].id:
                 m = ntriple_pattern.match(line.decode('utf-8'))
             else:
                 # Non-english (i18l) SKOS files have different format
