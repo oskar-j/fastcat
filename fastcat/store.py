@@ -25,6 +25,7 @@ def load_settings():
         languages = {'en': 0}
     except Exception as exc:
         print('Unknown exception thrown while unpickling {} file'.format(settings_filename))
+        # TODO: investigate why PyPy fails and if there is some workaround
         raise exc
 
 
