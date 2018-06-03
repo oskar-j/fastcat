@@ -1,5 +1,9 @@
 # Contributing
 
+## Co-ordinator
+
+Oskar Jarczyk (`oskar.jarczyk@gmail.com`)
+
 ## Adding features or fixing bugs
 
 * Fork the repo
@@ -13,4 +17,9 @@
 
 ## Testing
 
-* Please make sure tests pass
+* Please make sure `nosetests` pass fully
+
+## What is wanted at the moment
+
+* Check "Issues" section for some job for you
+* I'm looking for people who would check the SKOS dataset of their native language and write an appropriate unit test
