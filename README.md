@@ -48,19 +48,19 @@ Install
 
 You first need to setup Redis server on your machine as follows.
 
-On Mac:
+**On Mac:**
 
 ```
 $ brew install redis
 ```
 
-On Linux:
+**On Linux:**
 
 ```
 $ sudo apt-get install redis-server
 ```
 
-On Windows:
+**On Windows:**
 
 Please refer to instruction on installing [Vagrant Redis](https://github.com/ServiceStack/redis-windows). You will
 need an Ubuntu installation on your Windows, more information can be found 
@@ -72,6 +72,22 @@ If you are ready, installing Fastcat is pretty straightforward:
 
 ```
 $ pip install git+https://github.com/oskar-j/fastcat.git
+```
+
+That's it!
+
+### Contributing to the project
+
+#### Guidelines
+
+See [CONTRIBUTING.md](https://github.com/oskar-j/fastcat/blob/master/CONTRIBUTING.md) for more details
+
+#### Runing unit tests
+
+Simply execute the command:
+
+```
+nosetests . -v
 ```
 
 Q&A
