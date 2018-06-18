@@ -100,8 +100,8 @@ It's still in early stage of development, please share some feedback with me (un
 
 #### What are biggest drawbacks of Fastcat?
 
-DBpedia SKOS file is prone to constant change, which means: a) *loading data* in fastcat can stop working 
-in some distant future, b) it takes around 40 MB of your transfer (size depends on selected language).
+DBpedia SKOS file is prone to constant change, which means that *downloading Wikipedia data* from web can stop working 
+in some distant future. Moreover, due to the [infrastructure of Redis](http://www.mikeperham.com/2015/09/24/storing-data-with-redis/), you can have a maximum number of 16 languages (1 slot for a language). Last but not least, it takes around `40 MB` of your web transfer (size depends on the selected language) to download a single SKOS file.
 
 #### Which Python versions are supported?
 
@@ -113,7 +113,7 @@ There are two ways to check the list of available languages.
 
 First, is a manual inspection of the [lang.py](https://github.com/oskar-j/fastcat/blob/master/fastcat/lang.py) file.
 
-Second way is to call the `get_current_language()` method on the `FastCat` object.
+Second way is to call the `get_supported_languages()` method on the `FastCat` object.
 
 #### What's coming next?
 
