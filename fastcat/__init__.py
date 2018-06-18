@@ -57,12 +57,14 @@ class FastCatBase(object):
     def _name(self, url_pattern, language):
         if language == languages.available_languages['English'].id:
             m = re.search("^http://dbpedia.org/resource/Category:(.+)$", url_pattern)
-        elif language == languages.available_languages['Portuguese'].id:
-            m = re.search("^http://pt.dbpedia.org/resource/Categoria:(.+)$", url_pattern)
+        elif language == languages.available_languages['German'].id:
+            m = re.search("^http://de.dbpedia.org/resource/Kategorie:(.+)$", url_pattern)
         elif language == languages.available_languages['Japanese'].id:
             m = re.search("^http://ja.dbpedia.org/resource/Category:(.+)$", url_pattern)
         elif language == languages.available_languages['Polish'].id:
             m = re.search("^http://pl.dbpedia.org/resource/Kategoria:(.+)$", url_pattern)
+        elif language == languages.available_languages['Portuguese'].id:
+            m = re.search("^http://pt.dbpedia.org/resource/Categoria:(.+)$", url_pattern)
         else:
             raise NotImplementedError
         return parse.unquote(m.group(1).replace("_", " "))

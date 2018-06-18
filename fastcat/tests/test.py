@@ -20,6 +20,24 @@ class FastcatTests(unittest.TestCase):
         self.assertTrue('Software engineering' in self.f.broader("Computer programming"))
 
 
+class FastcatTestsGerman(unittest.TestCase):
+
+    def setUp(self):
+        # Preparing data for unit test
+        self.f = fastcat.FastCat(language="de")
+        self.f.load(progress_bar=False)
+
+    def test_narrower(self):
+        self.assertTrue(self.f._is_loaded(language='de'),
+                        msg="German-language Wikipedia successfully loaded?")
+        self.assertTrue('Nikola Tesla' in self.f.narrower("Wissenschaftler als Thema"))
+
+    def test_broader(self):
+        self.assertTrue(self.f._is_loaded(language='de'),
+                        msg="German-language Wikipedia successfully loaded?")
+        self.assertTrue('Nikola Tesla' in self.f.broader("Nikola Tesla als Namensgeber"))
+
+
 class FastcatTestsPortuguese(unittest.TestCase):
 
     def setUp(self):
