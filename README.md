@@ -109,12 +109,15 @@ Basically all Python 3+ versions. According to Travis, it works with PyPy as wel
 
 #### Which languages are supported?
 
-Currently only English, Japanese and Portuguese languages are tested. You can try to add more SKOS languages, but 
-they're not guaranteed to work due to possible differences in the file structure.
+There are two ways to check the list of available languages. 
+
+First, is a manual inspection of the [lang.py](https://github.com/oskar-j/fastcat/blob/master/fastcat/lang.py) file.
+
+Second way is to call the `get_current_language()` method on the `FastCat` object.
 
 #### What's coming next?
 
-Support of Polish, German and Russian languages, as well as adding Fastcat to the public python repository. 
+Support of Russian, Spanish and Ukrainian language, as well as adding Fastcat to the public python repository. 
 Exporting n-size tree of categories to a CSV or GraphML file. Experimenting to find out if backward compatibily with Python 2 is possible (through the `six` package). 
 
 License
