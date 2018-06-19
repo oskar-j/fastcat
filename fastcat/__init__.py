@@ -72,11 +72,44 @@ class FastCatBase(object):
 
 class FastCat(FastCatBase):
 
-    def __init__(self, db=None, language=None):
+    def __init__(self, db=None, language=None, **kwargs):
+        """Creates a new FastCast object, an interface to Wikipedia categories.
+
+        The __init__ method creates the FastCat object, which acts as the main and only
+        interface in communicating with the Redis server (where the Wikipedia categories are
+        first loaded (stored) and then retrieved on demand). Default settings mean that you're connecting
+        to a Redis instance on the localhost and 6379 port, and your current language of categories is English.
+        It's possible to pass your own Redis client object into the 'db' arg, or,
+        alternatively, custom args to the Redis client __init__ method.
+
+        Note:
+            No need to pass any extra arguments if you don't understand what you're doing
+
+        Args:
+            db (:obj:`Redis`, optional): Custom Redis client.
+            language (:obj:`str`, optional): Choose the default language.
+            kwargs (:obj:`dict`, optional): Any arguments, which you wish to pass to the Redis client.
+
+        """
 
         super(FastCatBase, self).__init__()
         # Load most recent language-redis mapping
         store.load_settings()
+
+        options = {
+            'host': 'localhost', 'port': 6379,
+                 'password': None, 'socket_timeout': None,
+                 'socket_connect_timeout': None,
+                 'socket_keepalive': None, 'socket_keepalive_options': None,
+                 'connection_pool': None, 'unix_socket_path': None,
+                 'encoding': 'utf-8', 'encoding_errors': 'strict',
+                 'charset': None, 'errors': None,
+                 'decode_responses': False, 'retry_on_timeout': False,
+                 'ssl': False, 'ssl_keyfile': None, 'ssl_certfile': None,
+                 'ssl_cert_reqs': None, 'ssl_ca_certs': None,
+                 'max_connections': None }
+
+        options.update(kwargs)
 
         # Initialize redis client object
         if db is None:
@@ -87,7 +120,7 @@ class FastCat(FastCatBase):
                 assert store.languages.keys().__contains__('en')
 
                 # Initialize connection for English dataset
-                db = redis.Redis()  # default is db=0
+                db = redis.Redis(**options)  # default is db=0
             else:
 
                 # Initialize connection for any other language dataset
@@ -102,7 +135,7 @@ class FastCat(FastCatBase):
         self.db = db
 
     def switch_language(self, language):
-        """Switch language on an existing FastCat object"""
+        """Switch language on an existing FastCat object."""
         try:
 
             slot = store.get_slot(language)
@@ -114,24 +147,20 @@ class FastCat(FastCatBase):
             self.load(language)
 
     def get_current_language(self):
-        """Get current language"""
+        """Get current language."""
         return store.get_language(slot=self.db.connection_pool.connection_kwargs['db'])
 
     @staticmethod
     def get_supported_languages():
-        """Get all supported languages"""
+        """Get list of supported languages."""
         return languages.available_languages.keys()
 
     def broader(self, cat):
-        """Pass in a Wikipedia category and get back a list of broader Wikipedia
-        categories.
-        """
+        """Pass in a Wikipedia category and get back a list of broader Wikipedia categories."""
         return [s.decode('utf-8') for s in self.db.smembers("b:%s" % cat)]
 
     def narrower(self, cat):
-        """Pass in a Wikipedia category and get back a list of narrower Wikipedia
-        categories.
-        """
+        """Pass in a Wikipedia category and get back a list of narrower Wikipedia categories."""
         return [s.decode('utf-8') for s in self.db.smembers("n:%s" % cat)]
 
     def _is_loaded(self, language, verbose=False):
@@ -144,7 +173,7 @@ class FastCat(FastCatBase):
             return False
 
     def load(self, language=None, verbose=False, progress_bar=True):
-        """Fill Redis with Wikipedia SKOS data"""
+        """Fill Redis with Wikipedia SKOS data."""
         if language is None:
             language = self.get_current_language().alpha_2
 
