@@ -93,5 +93,5 @@ class FastcatTestsPolish(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print('Unit testing initiated. Testing languages: en, pt, ja, pl.')
+    print('Unit testing initiated. Testing languages: en, de, pt, ja, pl.')
     unittest.main()
