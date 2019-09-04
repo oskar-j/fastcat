@@ -72,6 +72,12 @@ here: [Install your Linux Distribution of Choice](https://docs.microsoft.com/pl-
 If you are ready, installing Fastcat is pretty straightforward:
 
 ```
+$ pip install fastcat
+```
+
+Or if you wish to get the newest dev code:
+
+```
 $ pip install git+https://github.com/oskar-j/fastcat.git
 ```
 
