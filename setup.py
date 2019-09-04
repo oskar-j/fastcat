@@ -23,9 +23,14 @@ CLASSIFIERS = ['Development Status :: 3 - Alpha',
 def setup_package():
     from setuptools import setup, find_packages
 
+    with open("README.md", "r") as fh:
+        long_description = fh.read()
+
     metadata = dict(
         name=DISTNAME,
         description=DESCRIPTION,
+        long_description=long_description,
+        long_description_content_type="text/markdown",
         version=VERSION,
         classifiers=CLASSIFIERS,
         author=AUTHOR,
