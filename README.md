@@ -3,9 +3,9 @@ fastcat
 
 [![Build Status](https://travis-ci.org/oskar-j/fastcat.svg?branch=master)](https://travis-ci.org/oskar-j/fastcat)
 [![Requirements Status](https://requires.io/github/oskar-j/fastcat/requirements.svg?branch=master)](https://requires.io/github/oskar-j/fastcat/requirements/?branch=master)
-[![Pending Pull-Requests](http://githubbadges.herokuapp.com/oskar-j/fastcat/pulls.svg?style=flat)](https://github.com/oskar-j/fastcat/pulls)
-[![Github Issues](http://githubbadges.herokuapp.com/oskar-j/fastcat/issues.svg)](https://github.com/oskar-j/fastcat/issues)
-[![Ebert](https://ebertapp.io/github/oskar-j/fastcat.svg)](https://ebertapp.io/github/oskar-j/fastcat)
+[![Pending Pull-Requests](https://img.shields.io/github/issues-pr/oskar-j/fastcat)](https://github.com/oskar-j/fastcat/pulls)
+[![Github Issues](https://img.shields.io/github/issues/oskar-j/fastcat)](https://github.com/oskar-j/fastcat/issues)
+[![Commits Since Release](https://img.shields.io/github/commits-since/oskar-j/fastcat/latest)](https://github.com/oskar-j/fastcat/releases)
 
 Fastcat is a little Python library for quickly looking up broader/narrower 
 relations in Wikipedia categories locally. The idea is that fastcat can be
