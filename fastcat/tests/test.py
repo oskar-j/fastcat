@@ -102,7 +102,7 @@ class FastcatTestsRussian(unittest.TestCase):
     def test_narrower(self):
         self.assertTrue(self.f._is_loaded(language='ru'),
                         msg="Russian-language Wikipedia successfully loaded?")
-        self.assertTrue('Борщ‎' in self.f.narrower("Русские супы"))
+        self.assertTrue('Борщ' in self.f.narrower("Русские супы"))
 
     def test_broader(self):
         self.assertTrue(self.f._is_loaded(language='ru'),
