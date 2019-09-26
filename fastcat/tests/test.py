@@ -92,6 +92,24 @@ class FastcatTestsPolish(unittest.TestCase):
         self.assertTrue('Jeździectwo' in self.f.broader("Husaria"))
 
 
+class FastcatTestsRussian(unittest.TestCase):
+
+    def setUp(self):
+        # Preparing data for unit test
+        self.f = fastcat.FastCat(language="ru")
+        self.f.load(progress_bar=False)
+
+    def test_narrower(self):
+        self.assertTrue(self.f._is_loaded(language='ru'),
+                        msg="Russian-language Wikipedia successfully loaded?")
+        self.assertTrue('Борщ‎' in self.f.narrower("Русские супы"))
+
+    def test_broader(self):
+        self.assertTrue(self.f._is_loaded(language='ru'),
+                        msg="Russian-language Wikipedia successfully loaded?")
+        self.assertTrue('Русская кухня' in self.f.broader("Русские супы"))
+
+
 if __name__ == "__main__":
-    print('Unit testing initiated. Testing languages: en, de, pt, ja, pl.')
+    print('Unit testing initiated. Testing languages: en, de, pt, ja, pl, ru.')
     unittest.main()
