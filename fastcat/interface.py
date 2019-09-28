@@ -4,7 +4,7 @@ import os
 import sys
 import re
 import bz2
-from fastcat.utils import normalize_language, print_progress_bar
+from fastcat.utils import normalize_language, print_progress_bar, get_wikipedia_mapping
 from urllib import request, parse
 import redis
 import fastcat.store as store
@@ -37,12 +37,13 @@ class FastCatBase(object):
             print("Downloading Wikipedia SKOS file from DBpedia")
 
         normalized_language = normalize_language(language)
+        wikipedia_mapping = get_wikipedia_mapping(normalized_language)
 
         if normalized_language == languages.available_languages['English'].id:
             url = 'http://downloads.dbpedia.org/current/core/skos_categories_en.ttl.bz2'
         else:
             url = 'http://downloads.dbpedia.org/current/core-i18n/{}/skos_categories_{}.tql.bz2'.format(
-                normalized_language, normalized_language)
+                wikipedia_mapping, wikipedia_mapping)
 
         skos_file = skos_file_pattern.replace('%lang%', normalized_language)
 

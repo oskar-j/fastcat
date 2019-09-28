@@ -18,6 +18,12 @@ def normalize_language(lang):
     return None
 
 
+def get_wikipedia_mapping(normalized_lang):
+    for l in languages.available_languages.values():
+        if l.id == normalized_lang:
+            return l.wikipedia_mapping
+
+
 # Print iterations progress
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='#'):
     """
