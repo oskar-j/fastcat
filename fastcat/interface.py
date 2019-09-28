@@ -182,7 +182,7 @@ class FastCat(FastCatBase):
     def load(self, language=None, verbose=False, progress_bar=True):
         """Fill Redis with Wikipedia SKOS data."""
         if language is None:
-            language = self.get_current_language().alpha_2
+            language = self.get_current_language().alpha_2.lower()
 
         if self._is_loaded(language, verbose):
             print('Loading aborted (language already exists)')
@@ -200,7 +200,9 @@ class FastCat(FastCatBase):
 
         if verbose:
             print('Unpacking DBpedia .GZ file... this may take some time.')
+
         uncompressed = bz2.BZ2File(skos_file).readlines()
+
         l = len(uncompressed)
 
         if verbose:

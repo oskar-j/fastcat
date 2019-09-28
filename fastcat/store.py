@@ -51,7 +51,7 @@ def get_language(slot):
             if result is None:
                 # if not, below is last-chance workaround
                 # due to some bugs in pycountry package
-                result = [c for c in list(pycountry.countries) if c.alpha_2 == key.upper()][0]
+                result = [c for c in list(pycountry.countries) if c.alpha_2.lower() == key.lower()][0]
             return result
 
 
