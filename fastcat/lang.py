@@ -7,4 +7,5 @@ available_languages = {'English': Language(id='en', locales=['en-gb', 'en-us', '
                        'Japanese': Language(id='ja', locales=['ja-jp'], alternate='jpn'),
                        'Polish': Language(id='pl', locales=['pl-pl'], alternate='pol'),
                        'Portuguese': Language(id='pt', locales=['pt-pt', 'pt-br'], alternate='por'),
-                       'Russian': Language(id='ru', locales=['ru-ru'], alternate='rus')}
+                       'Russian': Language(id='ru', locales=['ru-ru'], alternate='rus'),
+                       'Ukrainian': Language(id='ua', locales=['ua-ua'], alternate='ukr')}
