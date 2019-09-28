@@ -64,7 +64,7 @@ Just fill-in the `language` argument in the `FastCat()` constructor with a langu
 1. English (`en`)
 2. Estonian (`et`)
 3. German (`de`)
-4. Japanese (`jp`)
+4. Japanese (`ja`)
 5. Polish (`pl`)
 6. Portuguese (`pt`)
 7. Russian (`ru`)

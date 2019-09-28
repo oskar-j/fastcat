@@ -46,7 +46,13 @@ def _get_next_slot():
 def get_language(slot):
     for key, value in languages.items():
         if value == slot:
-            return pycountry.languages.get(alpha_2=key)
+            # normally this line below should work fine
+            result = pycountry.languages.get(alpha_2=key)
+            if result is None:
+                # if not, below is last-chance workaround
+                # due to some bugs in pycountry package
+                result = [c for c in list(pycountry.countries) if c.alpha_2 == key.upper()][0]
+            return result
 
 
 def get_slot(language):
