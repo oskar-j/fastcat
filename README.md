@@ -27,6 +27,8 @@ messages. Major changes are porting the code to Python 3 as well as adding suppo
 Usage
 -----
 
+#### Basic usage 
+
 The first time you import fastcat you'll need to populate your Redis database
 with the category data from DBpedia. To do that instantiate a FastCat object
 and call the `load` method. After that you can use it to do lookups.
@@ -41,6 +43,32 @@ and call the `load` method. After that you can use it to do lookups.
 >>> print(f.narrower("Computer programming"))
 ['Programming idioms', 'Programming languages', 'Concurrent computing', 'Source code', 'Refactoring', 'Data structures', 'Programming games', 'Computer programmers', 'Version control', 'Anti-patterns', 'Programming constructs', 'Algorithms', 'Web Services tools', 'Programming paradigms', 'Software optimization', 'Debugging', 'Computer programming tools', 'Computer libraries', 'Programming contests', 'Archive networks', 'Self-hosting software', 'Educational abstract machines', 'Software design patterns', 'Computer arithmetic']
 ```
+
+#### Non-english categories
+
+Just fill-in the `language` argument in the `FastCat()` constructor with a language code listed below.
+
+```python
+>>> import fastcat
+>>> f = fastcat.FastCat(language='de')
+>>> f.load()  # brew a pot of coffee while the data is downloaded and loaded into redis
+...
+>>> print(f.broader("Berlin"))
+['Europa nach Ort', 'Deutschland nach Gemeinde', 'Deutschland nach Bundesland']
+>>> print(f.narrower("Berlin"))
+['Umwelt- und Naturschutz (Berlin)', 'Veranstaltung (Berlin)', 'Stadtplanung (Berlin)', 'Verwaltung (Berlin)', 'Urbaner Freiraum in Berlin als Thema']
+```
+
+##### Currently supported languages (and their codes)
+
+1. English (`en`)
+2. Estonian (`et`)
+3. German (`de`)
+4. Japanese (`jp`)
+5. Polish (`pl`)
+6. Portuguese (`pt`)
+7. Russian (`ru`)
+8. Ukrainian (`ua`)
 
 Install
 -------
@@ -123,8 +151,8 @@ Second way is to call the `get_supported_languages()` method on the `FastCat` ob
 
 #### What's coming next?
 
-Support of Russian, Spanish and Ukrainian language, as well as adding Fastcat to the public python repository. 
-Exporting n-size tree of categories to a CSV or GraphML file. Experimenting to find out if backward compatibily with Python 2 is possible (through the `six` package). 
+Support for the rest of european languages, as well as adding Fastcat to the public python repository. 
+Exporting n-size tree of categories to a CSV or GraphML file. Experimenting to find out if backward compatibility with Python 2 is possible (through the `six` package). 
 
 License
 -------
