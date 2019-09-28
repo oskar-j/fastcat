@@ -17,8 +17,8 @@ before_script:
 
 # command to run tests
 script:
-  # - less strict time limit, set to 35 minutes
-  - travis_wait 35 nosetests . -v
+  # - less strict time limit, set to 60 minutes
+  - travis_wait 60 nosetests . -v
   # - pytest
 
 notifications:

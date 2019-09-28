@@ -3,6 +3,7 @@ from collections import namedtuple
 Language = namedtuple('Language', ['id', 'locales', 'alternate'])
 
 available_languages = {'English': Language(id='en', locales=['en-gb', 'en-us', 'en-ca', 'en-nz'], alternate='eng'),
+                       'Estonian': Language(id='et', locales=['et-et'], alternate='est'),
                        'German': Language(id='de', locales=['de-de'], alternate='ger'),
                        'Japanese': Language(id='ja', locales=['ja-jp'], alternate='jpn'),
                        'Polish': Language(id='pl', locales=['pl-pl'], alternate='pol'),
