@@ -139,7 +139,8 @@ in some distant future. Moreover, due to the [infrastructure of Redis](http://ww
 
 #### Which Python versions are supported?
 
-Basically all Python 3+ versions. According to Travis, it works with PyPy as well.
+Basically all Python 3+ versions (tested on Travis with version `3.5` and above). There are ongoing efforts 
+to make it work on PyPy as well.
 
 #### Which languages are supported?
 

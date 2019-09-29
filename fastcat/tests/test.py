@@ -143,7 +143,7 @@ class FastcatTestsEstonian(unittest.TestCase):
     def test_broader(self):
         self.assertTrue(self.f._is_loaded(language='et'),
                         msg="Estonian-language Wikipedia successfully loaded?")
-        self.assertTrue('Eesti_linnad' in self.f.broader("Tallinn"))
+        self.assertTrue('Eesti linnad' in self.f.broader("Tallinn"))
 
 
 if __name__ == "__main__":
