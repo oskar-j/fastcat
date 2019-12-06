@@ -6,6 +6,7 @@ fastcat
 [![Pending Pull-Requests](https://img.shields.io/github/issues-pr/oskar-j/fastcat)](https://github.com/oskar-j/fastcat/pulls)
 [![Github Issues](https://img.shields.io/github/issues/oskar-j/fastcat)](https://github.com/oskar-j/fastcat/issues)
 [![Commits Since Release](https://img.shields.io/github/commits-since/oskar-j/fastcat/latest)](https://github.com/oskar-j/fastcat/releases)
+[![Downloads](https://pepy.tech/badge/fastcat)](https://pepy.tech/project/fastcat)
 
 Fastcat is a little Python library for quickly looking up broader/narrower 
 relations in Wikipedia categories locally. The idea is that fastcat can be
