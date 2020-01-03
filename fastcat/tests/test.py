@@ -146,6 +146,24 @@ class FastcatTestsEstonian(unittest.TestCase):
         self.assertTrue('Eesti linnad' in self.f.broader("Tallinn"))
 
 
+class FastcatTestsCzech(unittest.TestCase):
+
+    def setUp(self):
+        # Preparing data for unit test
+        self.f = fastcat.FastCat(language="cs")
+        self.f.load(progress_bar=False)
+
+    def test_narrower(self):
+        self.assertTrue(self.f._is_loaded(language='cs'),
+                        msg="Czech-language Wikipedia successfully loaded?")
+        self.assertTrue('Pivovary' in self.f.narrower("Průmyslové stavby"))
+
+    def test_broader(self):
+        self.assertTrue(self.f._is_loaded(language='cs'),
+                        msg="Czech-language Wikipedia successfully loaded?")
+        self.assertTrue('Pivo' in self.f.broader("Pivovary"))
+
+
 if __name__ == "__main__":
-    print('Unit testing initiated. Testing languages: en, et, de, pt, ja, pl, ru, ua.')
+    print('Unit testing initiated. Testing languages: cs, en, et, de, pt, ja, pl, ru, ua.')
     unittest.main()

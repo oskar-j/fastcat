@@ -2,7 +2,9 @@ from collections import namedtuple
 
 Language = namedtuple('Language', ['id', 'locales', 'alternate', 'wikipedia_mapping'])
 
-available_languages = {'English': Language(id='en', locales=['en-gb', 'en-us', 'en-ca', 'en-nz'],
+available_languages = {'Czech': Language(id='cs', locales=['cs-cs'],
+                                         alternate='cze', wikipedia_mapping='cs'),
+                       'English': Language(id='en', locales=['en-gb', 'en-us', 'en-ca', 'en-nz'],
                                            alternate='eng', wikipedia_mapping='en'),
                        'Estonian': Language(id='et', locales=['et-et'],
                                             alternate='est', wikipedia_mapping='et'),

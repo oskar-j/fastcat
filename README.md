@@ -70,6 +70,7 @@ Just fill-in the `language` argument in the `FastCat()` constructor with a langu
 6. Portuguese (`pt`)
 7. Russian (`ru`)
 8. Ukrainian (`ua`)
+9. Czech (`cs`)
 
 Install
 -------
