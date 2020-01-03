@@ -59,7 +59,7 @@ class FastCatBase(object):
         if language == languages.available_languages['English'].id:
             m = re.search("^http://dbpedia.org/resource/Category:(.+)$", url_pattern)
         elif language == languages.available_languages['Czech'].id:
-            m = re.search("^http://cs.dbpedia.org/resource/Kategoorie:(.+)$", url_pattern)
+            m = re.search("^http://cs.dbpedia.org/resource/Kategorie:(.+)$", url_pattern)
         elif language == languages.available_languages['Estonian'].id:
             m = re.search("^http://et.dbpedia.org/resource/Kategooria:(.+)$", url_pattern)
         elif language == languages.available_languages['German'].id:
