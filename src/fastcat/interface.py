@@ -26,8 +26,14 @@ if not os.path.isdir(settings_location):
 
 skos_file_pattern = os.path.join(os.path.dirname(os.path.realpath(p)), 'data', 'skos-%lang%.nt.bz2')
 
-ntriple_pattern = re.compile('^<(.+)> <(.+)> <(.+)> \.\n$')
-ntriple_pattern_wide = re.compile('^<(.+)> <(.+)> <(.+)> <(.+)> \.\n$')
+# Where to look for Redis unless the caller says otherwise. The environment
+# variables make a containerised Redis (see docker-compose.yml) usable without
+# passing connection arguments around.
+DEFAULT_REDIS_HOST = os.environ.get('FASTCAT_REDIS_HOST', 'localhost')
+DEFAULT_REDIS_PORT = int(os.environ.get('FASTCAT_REDIS_PORT', 6379))
+
+ntriple_pattern = re.compile(r'^<(.+)> <(.+)> <(.+)> \.\n$')
+ntriple_pattern_wide = re.compile(r'^<(.+)> <(.+)> <(.+)> <(.+)> \.\n$')
 
 
 class FastCatBase(object):
@@ -105,20 +111,13 @@ class FastCat(FastCatBase):
         # Load most recent language-redis mapping
         store.load_settings()
 
-        options = {
-            'host': 'localhost', 'port': 6379,
-            'password': None, 'socket_timeout': None,
-            'socket_connect_timeout': None,
-            'socket_keepalive': None, 'socket_keepalive_options': None,
-            'connection_pool': None, 'unix_socket_path': None,
-            'encoding': 'utf-8', 'encoding_errors': 'strict',
-            'charset': None, 'errors': None,
-            'decode_responses': False, 'retry_on_timeout': False,
-            'ssl': False, 'ssl_keyfile': None, 'ssl_certfile': None,
-            'ssl_cert_reqs': None, 'ssl_ca_certs': None,
-            'max_connections': None}
-
+        # Anything not set here is left at the redis client's own default
+        options = {'host': DEFAULT_REDIS_HOST, 'port': DEFAULT_REDIS_PORT}
         options.update(kwargs)
+
+        # Remembered so that every later connection (a different language means
+        # a different redis db) reaches the same server
+        self._options = options
 
         # Initialize redis client object
         if db is None:
@@ -126,7 +125,7 @@ class FastCat(FastCatBase):
             if language is None:
 
                 # Check if language-redis mapping is ok
-                assert store.languages.keys().__contains__('en')
+                assert 'en' in store.languages
 
                 # Initialize connection for English dataset
                 db = redis.Redis(**options)  # default is db=0
@@ -136,9 +135,11 @@ class FastCat(FastCatBase):
                 normalized_language = normalize_language(language)
 
                 try:
-                    db = redis.Redis(db=store.get_slot(normalized_language))
+                    slot = store.get_slot(normalized_language)
                 except ValueError:
-                    db = redis.Redis(db=store.save_settings(normalized_language))
+                    slot = store.save_settings(normalized_language)
+
+                db = redis.Redis(db=slot, **options)
 
         # There must be always only one redis client
         self.db = db
@@ -148,11 +149,11 @@ class FastCat(FastCatBase):
         try:
 
             slot = store.get_slot(language)
-            self.db = redis.Redis(db=slot)
+            self.db = redis.Redis(db=slot, **self._options)
         except ValueError:
 
             slot = store.save_settings(language)
-            self.db = redis.Redis(db=slot)
+            self.db = redis.Redis(db=slot, **self._options)
             self.load(language)
 
     def get_current_language(self):

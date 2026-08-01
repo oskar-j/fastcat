@@ -1,4 +1,19 @@
+# Downloaded DBpedia dumps and the language -> redis slot mapping
 skos.nt.bz2
 articles.nt.bz2
+src/fastcat/data/
+src/fastcat/settings/
+
+# Python
+__pycache__/
 *.pyc
+.pytest_cache/
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+
+# Editors
 /.idea
+.vscode/

@@ -1,2 +1,5 @@
-redis
-pycountry
+# Runtime dependencies.
+# pyproject.toml is the source of truth for what gets installed with the
+# package; this file mirrors it so a checkout can be set up with plain pip.
+redis>=5.0.0,<8.0.0
+pycountry>=24.6.1,<26.0.0
