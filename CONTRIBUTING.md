@@ -30,6 +30,22 @@ pip install -e '.[dev]'
   run with `pytest --run-integration`. Easiest way to get a Redis for them:
   `docker compose up -d redis`
 
+## Releasing
+
+Releases are automated -- do not upload to PyPI by hand.
+
+* Bump `version` in `pyproject.toml`
+* Move the `## [Unreleased]` notes in `CHANGELOG.md` under the new version
+* Merge to `master`
+
+The `publish` workflow then builds the package, runs the tests, uploads it to
+PyPI, tags the commit and creates a GitHub release. If the version is already on
+PyPI the workflow stops early, so merges that do not bump the version are a
+no-op.
+
+Uploads use [PyPI trusted publishing](https://docs.pypi.org/trusted-publishers/)
+from the `pypi` GitHub environment, so there is no API token to rotate.
+
 ## What is wanted at the moment
 
 * Check "Issues" section for some job for you

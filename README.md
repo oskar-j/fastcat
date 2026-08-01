@@ -2,11 +2,14 @@ fastcat
 =======
 
 [![Tests](https://github.com/oskar-j/fastcat/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/oskar-j/fastcat/actions/workflows/tests.yml)
-[![Requirements Status](https://requires.io/github/oskar-j/fastcat/requirements.svg?branch=master)](https://requires.io/github/oskar-j/fastcat/requirements/?branch=master)
+[![Publish](https://github.com/oskar-j/fastcat/actions/workflows/publish.yml/badge.svg?branch=master)](https://github.com/oskar-j/fastcat/actions/workflows/publish.yml)
+[![PyPI](https://img.shields.io/pypi/v/fastcat)](https://pypi.org/project/fastcat/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/fastcat)](https://pypi.org/project/fastcat/)
+[![Downloads](https://static.pepy.tech/badge/fastcat)](https://pepy.tech/project/fastcat)
+[![License](https://img.shields.io/badge/license-CC%20BY--SA%203.0-blue)](http://creativecommons.org/licenses/by-sa/3.0/)
 [![Pending Pull-Requests](https://img.shields.io/github/issues-pr/oskar-j/fastcat)](https://github.com/oskar-j/fastcat/pulls)
 [![Github Issues](https://img.shields.io/github/issues/oskar-j/fastcat)](https://github.com/oskar-j/fastcat/issues)
 [![Commits Since Release](https://img.shields.io/github/commits-since/oskar-j/fastcat/latest)](https://github.com/oskar-j/fastcat/releases)
-[![Downloads](https://pepy.tech/badge/fastcat)](https://pepy.tech/project/fastcat)
 
 Fastcat is a little Python library for quickly looking up broader/narrower 
 relations in Wikipedia categories locally. The idea is that fastcat can be

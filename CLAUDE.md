@@ -30,6 +30,8 @@ Integration runs are slow the first time because `FastCat.load()` downloads a bz
 
 There is no linter configured. CI is GitHub Actions (`.github/workflows/tests.yml`): unit tests on 3.10-3.14, a `python -m build` + `twine check` job, and a manual-only integration job.
 
+**Releasing is automatic**: `.github/workflows/publish.yml` runs on every push to `master` and publishes to PyPI via trusted publishing (OIDC, `pypi` environment — no stored token), then tags the commit and cuts a GitHub release. It reads the version from `pyproject.toml` and skips the whole pipeline if that version is already on PyPI, so bumping `version` in `pyproject.toml` (plus a `CHANGELOG.md` entry) *is* the release action. Never `twine upload` by hand.
+
 ## Architecture
 
 Four modules under `fastcat/`, with `FastCat` (in `interface.py`) as the single public entry point re-exported by `__init__.py`.
