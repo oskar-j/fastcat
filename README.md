@@ -1,7 +1,7 @@
 fastcat
 =======
 
-[![Build Status](https://travis-ci.org/oskar-j/fastcat.svg?branch=master)](https://travis-ci.org/oskar-j/fastcat)
+[![Tests](https://github.com/oskar-j/fastcat/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/oskar-j/fastcat/actions/workflows/tests.yml)
 [![Requirements Status](https://requires.io/github/oskar-j/fastcat/requirements.svg?branch=master)](https://requires.io/github/oskar-j/fastcat/requirements/?branch=master)
 [![Pending Pull-Requests](https://img.shields.io/github/issues-pr/oskar-j/fastcat)](https://github.com/oskar-j/fastcat/pulls)
 [![Github Issues](https://img.shields.io/github/issues/oskar-j/fastcat)](https://github.com/oskar-j/fastcat/issues)
@@ -97,6 +97,28 @@ Please refer to instruction on installing [Vagrant Redis](https://github.com/Ser
 need an Ubuntu installation on your Windows, more information can be found 
 here: [Install your Linux Distribution of Choice](https://docs.microsoft.com/pl-pl/windows/wsl/install-win10)
 
+**With Docker (any platform):**
+
+If you would rather not install Redis at all, the bundled compose file spins one
+up on `localhost:6379`, with the loaded categories kept in a named volume so
+they survive a restart:
+
+```
+$ docker compose up -d redis
+```
+
+The same file also defines a `fastcat` container with the package and its dev
+dependencies installed, which is handy for running the suite in a clean
+environment:
+
+```
+$ docker compose run --rm fastcat pytest
+```
+
+Inside a container Redis is not on localhost, so fastcat reads the
+`FASTCAT_REDIS_HOST` and `FASTCAT_REDIS_PORT` environment variables (already set
+for the `fastcat` service) to find it.
+
 ### Installing the module
 
 If you are ready, installing Fastcat is pretty straightforward:
@@ -119,12 +141,21 @@ That's it!
 
 See [CONTRIBUTING.md](https://github.com/oskar-j/fastcat/blob/master/CONTRIBUTING.md) for more details
 
-#### Runing unit tests
+#### Running unit tests
 
-Simply execute the command:
+Install the package with its dev dependencies and run pytest:
 
 ```
-nosetests . -v
+$ pip install -e '.[dev]'
+$ pytest
+```
+
+That runs the fast, offline tests. The end-to-end tests need a Redis server and
+download a SKOS dump per language from DBpedia, so they are opt-in:
+
+```
+$ docker compose up -d redis      # or your own local Redis
+$ pytest --run-integration
 ```
 
 Q&A
@@ -141,21 +172,23 @@ in some distant future. Moreover, due to the [infrastructure of Redis](http://ww
 
 #### Which Python versions are supported?
 
-Basically all Python 3+ versions (tested on Travis with version `3.5` and above). There are ongoing efforts 
-to make it work on PyPy as well.
+Python `3.10` and above (tested on GitHub Actions against `3.10` through `3.14`).
+Releases up to `0.1.2` supported Python `3.5`+; if you are stuck on an older
+interpreter, pin `fastcat==0.1.2`.
 
 #### Which languages are supported?
 
 There are two ways to check the list of available languages. 
 
-First, is a manual inspection of the [lang.py](https://github.com/oskar-j/fastcat/blob/master/fastcat/lang.py) file.
+First, is a manual inspection of the [lang.py](https://github.com/oskar-j/fastcat/blob/master/src/fastcat/lang.py) file.
 
 Second way is to call the `get_supported_languages()` method on the `FastCat` object.
 
 #### What's coming next?
 
-Support for the rest of european languages, as well as adding Fastcat to the public python repository. 
-Exporting n-size tree of categories to a CSV or GraphML file. Experimenting to find out if backward compatibility with Python 2 is possible (through the `six` package). 
+Support for the rest of european languages. Exporting n-size tree of categories to a CSV or GraphML file.
+Moving the downloaded dumps and the language mapping out of the package directory into a proper user cache
+directory.
 
 License
 -------

@@ -1,0 +1,40 @@
+# Dockerized Redis for fastcat, plus an optional container to run the suite in.
+#
+#   docker compose up -d redis                      # Redis on localhost:6379
+#   docker compose run --rm fastcat pytest          # unit tests
+#   docker compose run --rm fastcat pytest --run-integration
+#
+services:
+  redis:
+    image: redis:7-alpine
+    # Appendonly keeps the loaded categories across restarts -- reloading a
+    # language means downloading ~40 MB from DBpedia again.
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  fastcat:
+    build: .
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      FASTCAT_REDIS_HOST: redis
+      FASTCAT_REDIS_PORT: "6379"
+    volumes:
+      # Cache the downloaded SKOS dumps and the language -> db-slot mapping
+      # outside the container.
+      - skos-data:/app/src/fastcat/data
+      - skos-settings:/app/src/fastcat/settings
+
+volumes:
+  redis-data:
+  skos-data:
+  skos-settings:
