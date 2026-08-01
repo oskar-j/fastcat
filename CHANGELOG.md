@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-01
+
+### Added
+
+- Automated PyPI release: merging to `master` builds, checks and publishes the
+  package, then tags the commit and creates a GitHub release. Publishing uses
+  PyPI trusted publishing (OIDC), so no API token is stored in the repository.
+  Runs where the version in `pyproject.toml` is already on PyPI stop early
+  instead of failing, so a merge without a version bump is a no-op.
+- README badges for the PyPI version, supported Python versions and licence.
+
+### Changed
+
+- Downloads badge now points at `static.pepy.tech`, pepy's current endpoint.
+
+### Removed
+
+- The requires.io badge. The service has shut down and served an HTML lander
+  instead of an image, so the badge rendered as a broken image.
+
 ## [0.2.0] - 2026-08-01
 
 ### Added
@@ -67,7 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/oskar-j/fastcat/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/oskar-j/fastcat/compare/v_01_2...v0.2.0
 [0.1.2]: https://github.com/oskar-j/fastcat/releases/tag/v_01_2
 [0.1.0]: https://github.com/oskar-j/fastcat/releases
