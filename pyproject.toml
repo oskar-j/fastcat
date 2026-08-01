@@ -4,13 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fastcat"
-version = "0.2.1"
+version = "0.2.2"
 description = "Navigate Wikipedia categories quickly in a local redis instance"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "CC-BY-SA-3.0"
 license-files = ["LICENSE.txt"]
-authors = [{ name = "Ed Summers", email = "ehs@pobox.com" }]
+authors = [
+    { name = "Ed Summers", email = "ehs@pobox.com" },
+    { name = "Oskar Jarczyk", email = "oskar.jarczyk@gmail.com" },
+]
 maintainers = [{ name = "Oskar Jarczyk", email = "oskar.jarczyk@gmail.com" }]
 keywords = ["Wikipedia", "categories", "wiki-api", "knowledge engineering"]
 classifiers = [
@@ -30,6 +33,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# For pip: `pip install -e '.[dev]'`
+dev = [
+    "pytest>=8.0.0,<9.0.0",
+]
+
+# For uv, which installs this group by default: `uv sync`.
+# Keep in step with the "dev" extra above.
+[dependency-groups]
 dev = [
     "pytest>=8.0.0,<9.0.0",
 ]

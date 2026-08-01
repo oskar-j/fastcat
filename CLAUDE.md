@@ -11,10 +11,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `src/` layout, PEP 621 metadata in `pyproject.toml`, Python >= 3.10.
 
 ```
-pip install -e '.[dev]'
-pytest                                       # fast offline tests only
+uv sync && uv run pytest                     # uv path: installs from uv.lock
+pip install -e '.[dev]' && pytest            # pip path
 pytest tests/test_names.py::test_percent_encoding_is_decoded   # one test
 ```
+
+Dev dependencies are declared **twice** in `pyproject.toml` — as the `dev` extra (pip) and as the `dev` dependency group (uv installs it by default). Changing one means changing the other, then re-running `uv lock`; CI's `uv` job runs `uv lock --check` and fails if `uv.lock` drifts from `pyproject.toml`.
 
 Anything touching Redis or DBpedia is marked `integration` and skipped unless opted in:
 

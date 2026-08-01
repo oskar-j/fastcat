@@ -18,9 +18,27 @@ Oskar Jarczyk (`oskar.jarczyk@gmail.com`)
 
 ## Development setup
 
+With [uv](https://docs.astral.sh/uv/) (recommended -- installs from the
+committed `uv.lock`, so everyone gets the same versions):
+
+```
+uv sync
+uv run pytest
+```
+
+`.python-version` pins the interpreter uv provisions for the project, and the
+`dev` dependency group (pytest) is installed by default.
+
+With pip:
+
 ```
 pip install -e '.[dev]'
+pytest
 ```
+
+Dev dependencies are declared twice in `pyproject.toml` -- as the `dev` extra
+(for pip) and as the `dev` dependency group (for uv). Keep the two in step, and
+run `uv lock` after touching either.
 
 ## Testing
 

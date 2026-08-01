@@ -21,6 +21,19 @@ jobs:
       - run: pip install '.[dev]'
       - run: pytest
 
+  # Keeps uv.lock honest: it must stay in step with pyproject.toml, and the
+  # locked environment must actually pass the suite.
+  uv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv lock --check
+      - run: uv sync --frozen
+      - run: uv run --frozen pytest
+
   package:
     runs-on: ubuntu-latest
     steps:
