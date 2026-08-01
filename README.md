@@ -146,7 +146,15 @@ See [CONTRIBUTING.md](https://github.com/oskar-j/fastcat/blob/master/CONTRIBUTIN
 
 #### Running unit tests
 
-Install the package with its dev dependencies and run pytest:
+With [uv](https://docs.astral.sh/uv/), which installs the exact versions from
+the committed `uv.lock`:
+
+```
+$ uv sync
+$ uv run pytest
+```
+
+Or with pip:
 
 ```
 $ pip install -e '.[dev]'

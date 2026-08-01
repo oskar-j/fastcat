@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-08-01
+
+### Added
+
+- [uv](https://docs.astral.sh/uv/) support: a committed `uv.lock`, a
+  `.python-version` pinning the project interpreter, and a `dev` dependency
+  group (PEP 735) so `uv sync && uv run pytest` works with no extra flags.
+- CI job running `uv lock --check` and the suite from the locked environment,
+  so the lockfile cannot drift from `pyproject.toml` unnoticed.
+
+### Changed
+
+- Oskar Jarczyk is now listed as an author as well as the maintainer.
+- Dev dependencies are declared both as the `dev` extra (for pip) and as the
+  `dev` dependency group (for uv); the two must be kept in step.
+
 ## [0.2.1] - 2026-08-01
 
 ### Added
@@ -87,7 +103,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/oskar-j/fastcat/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/oskar-j/fastcat/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/oskar-j/fastcat/compare/v_01_2...v0.2.0
 [0.1.2]: https://github.com/oskar-j/fastcat/releases/tag/v_01_2
