@@ -28,7 +28,7 @@ pytest --run-integration "tests/test_categories.py::test_broader[pl]"   # one la
 
 Integration runs are slow the first time because `FastCat.load()` downloads a bz2 SKOS dump per language and inserts every triple into Redis; later runs short-circuit on the `loaded-skos` key. `docker compose run --rm fastcat pytest` runs the suite inside a container instead (`FASTCAT_REDIS_HOST`/`FASTCAT_REDIS_PORT` point fastcat at the Redis service). `sample.py` is a scratch script for manual end-to-end checks.
 
-**Note (as of 2026-08-01): the DBpedia download URLs in `_download()` return 404** — `downloads.dbpedia.org/current/core/...` no longer serves those files. Integration tests cannot pass until the URLs are updated to the current DBpedia Databus layout. Unit tests are unaffected.
+Downloads come from `src/fastcat/engines.py`. `wiki-archive` (the default) pulls DBpedia's archived **2016-10** release at `downloads.dbpedia.org/2016-10/core-i18n/<mapping>/skos_categories_<mapping>.ttl.bz2` — stable URLs, but the categories stop at 2016. `databus` is accepted as a name and raises `NotImplementedError`. The old `current/` tree returns 404 for everything, which is what broke `load()` before 0.2.3 (#14).
 
 There is no linter configured. CI is GitHub Actions (`.github/workflows/tests.yml`): unit tests on 3.10-3.14, a `python -m build` + `twine check` job, and a manual-only integration job.
 
@@ -49,7 +49,7 @@ Four modules under `fastcat/`, with `FastCat` (in `interface.py`) as the single 
 
 `utils.normalize_language()` maps any of the three forms (id, locale, ISO 639-2) down to the `id`; it returns `None` for unknown input rather than raising.
 
-**English is a special case throughout.** It downloads from `core/skos_categories_en.ttl.bz2` (3-term n-triples, `ntriple_pattern`); all other languages come from `core-i18n/<mapping>/skos_categories_<mapping>.tql.bz2` (4-term quads, `ntriple_pattern_wide`).
+**English is no longer a special case** (it was before 0.2.3). Archived dumps are 3-term n-triples for every language, opening with a `# started ...` header line; `load()` tries `ntriple_pattern` then `ntriple_pattern_wide`, so the quad `.tql` flavour still parses if a future engine serves it.
 
 **`id` and `wikipedia_mapping` are not always the same.** Ukrainian is `id='ua'` (the key used in the pickle and by callers) but `wikipedia_mapping='uk'` (the DBpedia subdomain and the actual ISO code). `store.get_language()` carries a pycountry fallback that searches *countries* by alpha-2 when a language lookup misses — that fallback exists for cases like this.
 

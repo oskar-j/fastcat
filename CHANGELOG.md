@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-08-02
+
+### Fixed
+
+- `load()` works again. Every download URL returned 404 because DBpedia retired
+  the `downloads.dbpedia.org/current/` tree; dumps are now fetched from the
+  archived 2016-10 release, whose URLs are stable. Fixes #14.
+
+### Added
+
+- `engine` parameter on `FastCat()` and `load()`, selecting where dumps come
+  from. `'wiki-archive'` (the default) downloads the archived DBpedia 2016-10
+  release; `'databus'` is recognised but raises `NotImplementedError` until the
+  Databus resolver is written.
+- `FastCat.get_supported_engines()` and `FastCat.get_implemented_engines()`.
+- `fastcat.engines` module, with the engine names exported from the package
+  root as `fastcat.WIKI_ARCHIVE`, `fastcat.DATABUS` and `fastcat.DEFAULT_ENGINE`.
+- A failed download now raises `RuntimeError` naming the URL and engine,
+  instead of a bare `HTTPError`, and no longer leaves a truncated file behind
+  that would break the next `load()`.
+
+### Changed
+
+- **Data vintage:** categories now come from a 2016 snapshot of Wikipedia
+  rather than a rolling current release. Relations added to Wikipedia after
+  2016 are not present. This is the trade-off for having a working, stable
+  download; the `databus` engine is the path back to current data.
+- Dump parsing no longer branches on language. Archived dumps are plain
+  n-triples for every language, and both the triple and quad shapes are now
+  accepted, so English is no longer a special case.
+- Cached dumps are named `skos-<engine>-<language>.nt.bz2`, so dumps from
+  different engines cannot overwrite each other. Any previously downloaded file
+  is ignored and re-fetched once.
+
 ## [0.2.2] - 2026-08-01
 
 ### Added
@@ -103,7 +137,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/oskar-j/fastcat/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/oskar-j/fastcat/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/oskar-j/fastcat/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/oskar-j/fastcat/compare/v_01_2...v0.2.0

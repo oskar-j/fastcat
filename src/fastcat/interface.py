@@ -5,10 +5,12 @@ import sys
 import re
 import bz2
 from fastcat.utils import normalize_language, print_progress_bar, get_wikipedia_mapping
-from urllib import request, parse
+from urllib import error, request, parse
 import redis
 import fastcat.store as store
 import fastcat.lang as languages
+import fastcat.engines as engines
+from fastcat.engines import DEFAULT_ENGINE, skos_url, validate_engine
 
 
 try:
@@ -24,7 +26,15 @@ settings_location = os.path.join(os.path.dirname(os.path.realpath(p)), 'settings
 if not os.path.isdir(settings_location):
     os.makedirs(settings_location)
 
-skos_file_pattern = os.path.join(os.path.dirname(os.path.realpath(p)), 'data', 'skos-%lang%.nt.bz2')
+# The engine is part of the name so dumps of the same language from different
+# sources cannot overwrite each other.
+skos_file_pattern = os.path.join(
+    os.path.dirname(os.path.realpath(p)), 'data', 'skos-%engine%-%lang%.nt.bz2')
+
+
+def skos_file_for(language, engine=DEFAULT_ENGINE):
+    """Local path fastcat caches a language's dump at."""
+    return skos_file_pattern.replace('%lang%', language).replace('%engine%', engine)
 
 # Where to look for Redis unless the caller says otherwise. The environment
 # variables make a containerised Redis (see docker-compose.yml) usable without
@@ -38,25 +48,31 @@ ntriple_pattern_wide = re.compile(r'^<(.+)> <(.+)> <(.+)> <(.+)> \.\n$')
 
 class FastCatBase(object):
 
-    def _download(self, language, verbose):
+    def _download(self, language, verbose, engine=DEFAULT_ENGINE):
         if verbose:
             print("Downloading Wikipedia SKOS file from DBpedia")
 
         normalized_language = normalize_language(language)
         wikipedia_mapping = get_wikipedia_mapping(normalized_language)
 
-        if normalized_language == languages.available_languages['English'].id:
-            url = 'http://downloads.dbpedia.org/current/core/skos_categories_en.ttl.bz2'
-        else:
-            url = 'http://downloads.dbpedia.org/current/core-i18n/{}/skos_categories_{}.tql.bz2'.format(
-                wikipedia_mapping, wikipedia_mapping)
-
-        skos_file = skos_file_pattern.replace('%lang%', normalized_language)
+        url = skos_url(wikipedia_mapping, engine)
+        skos_file = skos_file_for(normalized_language, engine)
 
         if verbose:
             print('-- request.urlretrieve for file {}'.format(skos_file))
 
-        request.urlretrieve(url, filename=skos_file)
+        try:
+            request.urlretrieve(url, filename=skos_file)
+        except error.HTTPError as http_error:
+            # Leaving a truncated file behind would make the next load() skip
+            # the download and fail while parsing instead.
+            if os.path.isfile(skos_file):
+                os.remove(skos_file)
+
+            raise RuntimeError(
+                'Could not download the SKOS dump for language {!r} from {} '
+                '({}). The {!r} engine may no longer serve this file.'.format(
+                    normalized_language, url, http_error, engine)) from http_error
 
         if verbose:
             print("Finished downloading {} file".format(skos_file))
@@ -87,7 +103,7 @@ class FastCatBase(object):
 
 class FastCat(FastCatBase):
 
-    def __init__(self, db=None, language=None, **kwargs):
+    def __init__(self, db=None, language=None, engine=DEFAULT_ENGINE, **kwargs):
         """Creates a new FastCast object, an interface to Wikipedia categories.
 
         The __init__ method creates the FastCat object, which acts as the main and only
@@ -103,11 +119,24 @@ class FastCat(FastCatBase):
         Args:
             db (:obj:`Redis`, optional): Custom Redis client.
             language (:obj:`str`, optional): Choose the default language.
+            engine (:obj:`str`, optional): Where dumps are downloaded from. Defaults to
+                ``'wiki-archive'``. See :mod:`fastcat.engines`.
             kwargs (:obj:`dict`, optional): Any arguments, which you wish to pass to the Redis client.
+
+        Raises:
+            ValueError: The engine name is not recognised.
+            NotImplementedError: The engine is known but not implemented yet, as
+                ``'databus'`` currently is.
 
         """
 
         super(FastCatBase, self).__init__()
+
+        # Fail before touching redis if the caller asked for an engine that
+        # cannot download anything
+        validate_engine(engine)
+        self.engine = engine
+
         # Load most recent language-redis mapping
         store.load_settings()
 
@@ -165,6 +194,19 @@ class FastCat(FastCatBase):
         """Get list of supported languages."""
         return languages.available_languages.keys()
 
+    @staticmethod
+    def get_supported_engines():
+        """Get every known download engine, implemented or not.
+
+        See :func:`get_implemented_engines` for the ones that work today.
+        """
+        return engines.available_engines
+
+    @staticmethod
+    def get_implemented_engines():
+        """Get the download engines that can actually fetch a dump."""
+        return engines.implemented_engines
+
     def broader(self, cat):
         """Pass in a Wikipedia category and get back a list of broader Wikipedia categories."""
         return [s.decode('utf-8') for s in self.db.smembers("b:%s" % cat)]
@@ -182,21 +224,34 @@ class FastCat(FastCatBase):
         else:
             return False
 
-    def load(self, language=None, verbose=False, progress_bar=True):
-        """Fill Redis with Wikipedia SKOS data."""
+    def load(self, language=None, verbose=False, progress_bar=True, engine=None):
+        """Fill Redis with Wikipedia SKOS data.
+
+        Args:
+            language (:obj:`str`, optional): Language to load. Defaults to the
+                language this object is connected to.
+            verbose (:obj:`bool` or :obj:`int`, optional): Higher values print more.
+            progress_bar (:obj:`bool`, optional): Draw a progress bar while loading.
+            engine (:obj:`str`, optional): Override the object's download engine
+                for this call. See :mod:`fastcat.engines`.
+        """
         if language is None:
             language = self.get_current_language().alpha_2.lower()
+
+        if engine is None:
+            engine = self.engine
+        validate_engine(engine)
 
         if self._is_loaded(language, verbose):
             print('Loading aborted (language already exists)')
             return
 
-        skos_file = skos_file_pattern.replace('%lang%', language)
+        skos_file = skos_file_for(language, engine)
 
         if not os.path.isfile(skos_file):
             if verbose:
                 print('Downloading SKOS .gzip file for langauge: {}'.format(language))
-            self._download(language, verbose)
+            self._download(language, verbose, engine)
 
         if verbose:
             print("Loading {} file".format(skos_file))
@@ -216,11 +271,16 @@ class FastCat(FastCatBase):
             if progress_bar:
                 print_progress_bar(i, l, prefix='Progress:', suffix='Complete', length=50)
 
-            if language == languages.available_languages['English'].id:
-                m = ntriple_pattern.match(line.decode('utf-8'))
-            else:
-                # Non-english (i18l) SKOS files have different format
-                m = ntriple_pattern_wide.match(line.decode('utf-8'))
+            text = line.decode('utf-8')
+
+            if text.startswith('#'):
+                # Dumps open with a "# started ..." header line
+                continue
+
+            # Archived dumps are plain n-triples for every language, but the
+            # quad (.tql) flavour of the same data is still out there, so both
+            # shapes are accepted.
+            m = ntriple_pattern.match(text) or ntriple_pattern_wide.match(text)
 
             if not m:
                 if verbose > 2:
