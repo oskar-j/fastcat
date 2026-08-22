@@ -16,7 +16,7 @@ relations in Wikipedia categories locally. The idea is that fastcat can be
 useful in situations where you need to rapidly lookup category relations,
 but don't want to hammer on the [Wikipedia
 API](http://en.wikipedia.org/w/api.php). Fastcat relies on Redis and the 
-[SKOS file](http://downloads.dbpedia.org/current/en/skos_categories_en.nt.bz2) that DBpedia makes available basing on 
+[SKOS files](https://downloads.dbpedia.org/2016-10/core-i18n/) that DBpedia makes available basing on 
 the Wikipedia [MySQL dumps](http://dumps.wikimedia.org/enwiki/latest/).
 
 ![fastcat logo](https://datageek.pl/assets/img/projects/fast_cat.png)
@@ -43,9 +43,9 @@ and call the `load` method. After that you can use it to do lookups.
 >>> f.load()  # brew a pot of coffee while the data is downloaded and loaded into redis
 ...
 >>> print(f.broader("Computer programming"))
-['Software engineering', 'Computing']
+['Software engineering', 'Software development']
 >>> print(f.narrower("Computer programming"))
-['Programming idioms', 'Programming languages', 'Concurrent computing', 'Source code', 'Refactoring', 'Data structures', 'Programming games', 'Computer programmers', 'Version control', 'Anti-patterns', 'Programming constructs', 'Algorithms', 'Web Services tools', 'Programming paradigms', 'Software optimization', 'Debugging', 'Computer programming tools', 'Computer libraries', 'Programming contests', 'Archive networks', 'Self-hosting software', 'Educational abstract machines', 'Software design patterns', 'Computer arithmetic']
+['Programming languages', 'Algorithms', 'Data structures', 'Computer programming tools', 'Programming games', 'Programming paradigms', 'Anti-patterns', 'Software design patterns', 'Programming constructs', 'Programming contests', 'Concurrent computing', 'Source code', 'Debugging', 'Computer programmers', 'Programming idioms', 'Computer libraries', 'Self-hosting software', 'Programming principles', 'Software optimization', 'Computer programming books', 'Code refactoring', 'Live coding', 'Source code generation', 'Program derivation', 'Visual programming', 'Computer programming folklore']
 ```
 
 #### Non-english categories
