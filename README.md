@@ -16,7 +16,7 @@ relations in Wikipedia categories locally. The idea is that fastcat can be
 useful in situations where you need to rapidly lookup category relations,
 but don't want to hammer on the [Wikipedia
 API](http://en.wikipedia.org/w/api.php). Fastcat relies on Redis and the 
-[SKOS files](https://downloads.dbpedia.org/2016-10/core-i18n/) that DBpedia makes available basing on 
+[SKOS files](https://downloads.dbpedia.org/2016-10/core-i18n/) that DBpedia makes available based on 
 the Wikipedia [MySQL dumps](http://dumps.wikimedia.org/enwiki/latest/).
 
 ![fastcat logo](https://datageek.pl/assets/img/projects/fast_cat.png)
