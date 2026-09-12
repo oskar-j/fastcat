@@ -42,6 +42,10 @@ def skos_file_for(language, engine=DEFAULT_ENGINE):
 DEFAULT_REDIS_HOST = os.environ.get('FASTCAT_REDIS_HOST', 'localhost')
 DEFAULT_REDIS_PORT = int(os.environ.get('FASTCAT_REDIS_PORT', 6379))
 
+#: Redis commands buffered before a pipeline is flushed. Without batching each
+#: triple costs two full round-trips, which dominates the load time.
+DEFAULT_BATCH_SIZE = 10000
+
 ntriple_pattern = re.compile(r'^<(.+)> <(.+)> <(.+)> \.\n$')
 ntriple_pattern_wide = re.compile(r'^<(.+)> <(.+)> <(.+)> <(.+)> \.\n$')
 
@@ -224,7 +228,8 @@ class FastCat(FastCatBase):
         else:
             return False
 
-    def load(self, language=None, verbose=False, progress_bar=True, engine=None):
+    def load(self, language=None, verbose=False, progress_bar=True, engine=None,
+             batch_size=DEFAULT_BATCH_SIZE):
         """Fill Redis with Wikipedia SKOS data.
 
         Args:
@@ -234,7 +239,17 @@ class FastCat(FastCatBase):
             progress_bar (:obj:`bool`, optional): Draw a progress bar while loading.
             engine (:obj:`str`, optional): Override the object's download engine
                 for this call. See :mod:`fastcat.engines`.
+            batch_size (:obj:`int`, optional): How many Redis commands to buffer
+                before flushing the pipeline. Lower it to cap memory, raise it
+                for a little more speed.
+
+        Raises:
+            ValueError: ``batch_size`` is smaller than 1.
         """
+        if batch_size < 1:
+            raise ValueError(
+                'batch_size must be at least 1, got {!r}'.format(batch_size))
+
         if language is None:
             language = self.get_current_language().alpha_2.lower()
 
@@ -259,65 +274,96 @@ class FastCat(FastCatBase):
         if verbose:
             print('Unpacking DBpedia .GZ file... this may take some time.')
 
-        uncompressed = bz2.BZ2File(skos_file).readlines()
-
-        l = len(uncompressed)
-
         if verbose:
             print('Starting process of adding DBpedia data to Redis instance')
 
-        for i, line in enumerate(uncompressed):
+        # Buffer the writes: one SADD per triple means a round-trip to Redis
+        # per triple, and there are millions of them.
+        pipe = self.db.pipeline(transaction=False)
+        pending = 0
 
-            if progress_bar:
-                print_progress_bar(i, l, prefix='Progress:', suffix='Complete', length=50)
+        # Progress is tracked in *compressed* bytes consumed. Counting lines up
+        # front would mean decompressing the whole dump into memory first,
+        # which is what the previous implementation did.
+        # The fallback keeps an empty file from dividing by zero
+        total_bytes = os.path.getsize(skos_file) or 1
+        last_tick = -1
 
-            text = line.decode('utf-8')
+        with open(skos_file, 'rb') as raw, bz2.BZ2File(raw) as uncompressed:
 
-            if text.startswith('#'):
-                # Dumps open with a "# started ..." header line
-                continue
+            for line in uncompressed:
 
-            # Archived dumps are plain n-triples for every language, but the
-            # quad (.tql) flavour of the same data is still out there, so both
-            # shapes are accepted.
-            m = ntriple_pattern.match(text) or ntriple_pattern_wide.match(text)
+                if progress_bar:
+                    # Redrawing on every line puts terminal I/O on the hot
+                    # path, so only redraw when the bar would actually change.
+                    consumed = min(raw.tell(), total_bytes)
+                    tick = consumed * 1000 // total_bytes
+                    if tick != last_tick:
+                        print_progress_bar(consumed, total_bytes, prefix='Progress:',
+                                           suffix='Complete', length=50)
+                        last_tick = tick
 
-            if not m:
-                if verbose > 2:
-                    print('ntripple pattern failed to match')
-                continue
+                text = line.decode('utf-8')
 
-            groups = m.groups()
+                if text.startswith('#'):
+                    # Dumps open with a "# started ..." header line
+                    continue
 
-            if len(groups) == 4:
-                s, p, o, meta = m.groups()
-            elif len(groups) == 3:
-                s, p, o = m.groups()
-            else:
-                raise ValueError
+                # Archived dumps are plain n-triples for every language, but the
+                # quad (.tql) flavour of the same data is still out there, so both
+                # shapes are accepted.
+                m = ntriple_pattern.match(text) or ntriple_pattern_wide.match(text)
 
-            if p != "http://www.w3.org/2004/02/skos/core#broader":
-                if verbose > 2:
-                    print('p group is not "broader" - {}'.format(p))
-                continue
+                if not m:
+                    if verbose > 2:
+                        print('ntripple pattern failed to match')
+                    continue
 
-            narrower = self._name(s, language)
-            broader = self._name(o, language)
+                groups = m.groups()
 
-            try:
+                if len(groups) == 4:
+                    s, p, o, meta = groups
+                elif len(groups) == 3:
+                    s, p, o = groups
+                else:
+                    raise ValueError
+
+                if p != "http://www.w3.org/2004/02/skos/core#broader":
+                    if verbose > 2:
+                        print('p group is not "broader" - {}'.format(p))
+                    continue
+
+                narrower = self._name(s, language)
+                broader = self._name(o, language)
+
+                try:
+
+                    if verbose > 1:
+                        print('Narrower: {}, broader: {}'.format(narrower, broader))
+
+                    pipe.sadd("b:%s" % narrower, broader)
+                    pipe.sadd("n:%s" % broader, narrower)
+                    pending += 2
+
+                except UnicodeEncodeError as uee:
+
+                    print('Narrower: {}, broader: {}'.format(narrower.encode("utf-8"), broader.encode("utf-8")))
+                    raise uee
+
+                if pending >= batch_size:
+                    pipe.execute()
+                    pending = 0
 
                 if verbose > 1:
-                    print('Narrower: {}, broader: {}'.format(narrower, broader))
+                    print("Added %s -> %s" % (broader, narrower))
 
-                self.db.sadd("b:%s" % narrower, broader)
-                self.db.sadd("n:%s" % broader, narrower)
+        if pending:
+            pipe.execute()
 
-            except UnicodeEncodeError as uee:
+        if progress_bar:
+            print_progress_bar(total_bytes, total_bytes, prefix='Progress:',
+                               suffix='Complete', length=50)
 
-                print('Narrower: {}, broader: {}'.format(narrower.encode("utf-8"), broader.encode("utf-8")))
-                raise uee
-
-            if verbose > 1:
-                print("Added %s -> %s" % (broader, narrower))
-
+        # Only once every triple is in, so an interrupted load is not mistaken
+        # for a complete one
         self.db.set("loaded-skos", "1")

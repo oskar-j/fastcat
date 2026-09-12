@@ -26,7 +26,7 @@ pytest --run-integration                     # very slow: ~40 MB download per la
 pytest --run-integration "tests/test_categories.py::test_broader[pl]"   # one language
 ```
 
-Integration runs are slow the first time because `FastCat.load()` downloads a bz2 SKOS dump per language and inserts every triple into Redis; later runs short-circuit on the `loaded-skos` key. `docker compose run --rm fastcat pytest` runs the suite inside a container instead (`FASTCAT_REDIS_HOST`/`FASTCAT_REDIS_PORT` point fastcat at the Redis service). `sample.py` is a scratch script for manual end-to-end checks.
+Integration runs are slow the first time because `FastCat.load()` downloads a bz2 SKOS dump per language (~45 MB for English) and inserts every triple into Redis; later runs short-circuit on the `loaded-skos` key. Since 0.2.4 `load()` pipelines its writes (`batch_size`, default 10000) and streams the dump instead of `readlines()`-ing it, so English takes ~58s and ~58 MB rather than minutes and 1.26 GB — keep both properties in mind before touching that loop. `docker compose run --rm fastcat pytest` runs the suite inside a container instead (`FASTCAT_REDIS_HOST`/`FASTCAT_REDIS_PORT` point fastcat at the Redis service). `sample.py` is a scratch script for manual end-to-end checks.
 
 Downloads come from `src/fastcat/engines.py`. `wiki-archive` (the default) pulls DBpedia's archived **2016-10** release at `downloads.dbpedia.org/2016-10/core-i18n/<mapping>/skos_categories_<mapping>.ttl.bz2` — stable URLs, but the categories stop at 2016. `databus` is accepted as a name and raises `NotImplementedError`. The old `current/` tree returns 404 for everything, which is what broke `load()` before 0.2.3 (#14).
 

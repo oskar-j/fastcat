@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-09-12
+
+### Changed
+
+- `load()` is roughly 20x faster. Redis writes are pipelined instead of issuing
+  two blocking round-trips per triple: loading Czech went from **91.5s to 4.2s**
+  on the same machine, and English from minutes to **58s** for its 1.84M keys.
+  The resulting data is byte-identical -- verified by hashing every key and
+  member of a language loaded both ways.
+- `load()` streams the dump instead of reading it into memory. It previously
+  called `readlines()` on the whole decompressed file, which for English is
+  1.05 GB of text and peaked at **1.26 GB of RSS**; a full English load now
+  peaks at **58 MB**.
+- The progress bar redraws only when it would visibly change, rather than once
+  per line -- 6 million terminal writes were on the hot path for English.
+
+### Added
+
+- `batch_size` parameter on `load()` (default 10000 commands per pipeline
+  flush), for trading memory against speed. Values below 1 raise `ValueError`.
+- Offline tests for the load path, using a stand-in Redis client, covering
+  triple parsing, batching behaviour and the ordering of the `loaded-skos`
+  flag. This path previously had no coverage outside the integration tests.
+
 ## [0.2.3] - 2026-08-02
 
 ### Fixed
@@ -137,7 +161,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/oskar-j/fastcat/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/oskar-j/fastcat/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/oskar-j/fastcat/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/oskar-j/fastcat/compare/v0.2.0...v0.2.1
