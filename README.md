@@ -16,7 +16,7 @@ relations in Wikipedia categories locally. The idea is that fastcat can be
 useful in situations where you need to rapidly lookup category relations,
 but don't want to hammer on the [Wikipedia
 API](http://en.wikipedia.org/w/api.php). Fastcat relies on Redis and the 
-[SKOS file](http://downloads.dbpedia.org/current/en/skos_categories_en.nt.bz2) that DBpedia makes available basing on 
+[SKOS files](https://downloads.dbpedia.org/2016-10/core-i18n/) that DBpedia makes available based on 
 the Wikipedia [MySQL dumps](http://dumps.wikimedia.org/enwiki/latest/).
 
 ![fastcat logo](https://datageek.pl/assets/img/projects/fast_cat.png)
@@ -43,9 +43,9 @@ and call the `load` method. After that you can use it to do lookups.
 >>> f.load()  # brew a pot of coffee while the data is downloaded and loaded into redis
 ...
 >>> print(f.broader("Computer programming"))
-['Software engineering', 'Computing']
+['Software engineering', 'Software development']
 >>> print(f.narrower("Computer programming"))
-['Programming idioms', 'Programming languages', 'Concurrent computing', 'Source code', 'Refactoring', 'Data structures', 'Programming games', 'Computer programmers', 'Version control', 'Anti-patterns', 'Programming constructs', 'Algorithms', 'Web Services tools', 'Programming paradigms', 'Software optimization', 'Debugging', 'Computer programming tools', 'Computer libraries', 'Programming contests', 'Archive networks', 'Self-hosting software', 'Educational abstract machines', 'Software design patterns', 'Computer arithmetic']
+['Programming languages', 'Algorithms', 'Data structures', 'Computer programming tools', 'Programming games', 'Programming paradigms', 'Anti-patterns', 'Software design patterns', 'Programming constructs', 'Programming contests', 'Concurrent computing', 'Source code', 'Debugging', 'Computer programmers', 'Programming idioms', 'Computer libraries', 'Self-hosting software', 'Programming principles', 'Software optimization', 'Computer programming books', 'Code refactoring', 'Live coding', 'Source code generation', 'Program derivation', 'Visual programming', 'Computer programming folklore']
 ```
 
 #### Non-english categories
@@ -74,6 +74,43 @@ Just fill-in the `language` argument in the `FastCat()` constructor with a langu
 7. Russian (`ru`)
 8. Ukrainian (`ua`)
 9. Czech (`cs`)
+
+#### Where the data comes from
+
+The `engine` argument selects the download source:
+
+```python
+>>> import fastcat
+>>> f = fastcat.FastCat(engine='wiki-archive')  # the default
+>>> f.load()
+```
+
+| Engine | Status | What it downloads |
+| --- | --- | --- |
+| `wiki-archive` | **default** | DBpedia's archived [2016-10 release](https://downloads.dbpedia.org/wiki-archive/dbpedia-version-2016-10.html) |
+| `databus` | not implemented yet | DBpedia's current [Databus](https://databus.dbpedia.org/) distribution |
+
+Asking for `databus` raises `NotImplementedError`:
+
+```python
+>>> fastcat.FastCat(engine='databus')
+NotImplementedError: The 'databus' engine is not implemented yet. Use 'wiki-archive' instead (the default).
+```
+
+Note that the archived release is a **snapshot of Wikipedia as it stood in
+2016**, so categories added since then are missing. That is the price of stable
+URLs: the rolling `current` tree fastcat used before was withdrawn by DBpedia
+and every URL under it now returns 404. Fetching today's data is what the
+`databus` engine is for.
+
+You can list the engines from code:
+
+```python
+>>> fastcat.FastCat.get_supported_engines()
+('wiki-archive', 'databus')
+>>> fastcat.FastCat.get_implemented_engines()
+('wiki-archive',)
+```
 
 Install
 -------
@@ -178,8 +215,13 @@ It's still in early stage of development, please share some feedback with me (un
 
 #### What are biggest drawbacks of Fastcat?
 
-DBpedia SKOS file is prone to constant change, which means that *downloading Wikipedia data* from web can stop working 
-in some distant future. Moreover, due to the [infrastructure of Redis](http://www.mikeperham.com/2015/09/24/storing-data-with-redis/), you can have a maximum number of 16 languages (1 slot for a language). Last but not least, it takes around `40 MB` of your web transfer (size depends on the selected language) to download a single SKOS file.
+DBpedia SKOS files move around, and that has already bitten this project once: the rolling `current` tree fastcat
+downloaded from was withdrawn, and *downloading Wikipedia data* stopped working entirely until `0.2.3` repointed it at
+the archived 2016-10 release. Pinning to an archive buys stable URLs at the cost of **data that stops in 2016** --
+until the `databus` engine lands, categories created after that are simply not there. Moreover, due to the
+[infrastructure of Redis](http://www.mikeperham.com/2015/09/24/storing-data-with-redis/), you can have a maximum number
+of 16 languages (1 slot for a language). Last but not least, it takes around `40 MB` of your web transfer (size depends
+on the selected language) to download a single SKOS file.
 
 #### Which Python versions are supported?
 
@@ -197,6 +239,7 @@ Second way is to call the `get_supported_languages()` method on the `FastCat` ob
 
 #### What's coming next?
 
+Implementing the `databus` engine, so fastcat can pull current categories instead of a 2016 snapshot.
 Support for the rest of european languages. Exporting n-size tree of categories to a CSV or GraphML file.
 Moving the downloaded dumps and the language mapping out of the package directory into a proper user cache
 directory.
