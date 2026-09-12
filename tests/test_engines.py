@@ -5,7 +5,8 @@ import pytest
 import fastcat
 import fastcat.engines as engines
 import fastcat.lang as languages
-from fastcat.engines import DATABUS, DEFAULT_ENGINE, WIKI_ARCHIVE, skos_url, validate_engine
+from fastcat.engines import (DATABUS, DEFAULT_ENGINE, WIKI_ARCHIVE, skos_source,
+                             skos_url, validate_engine)
 from fastcat.interface import FastCat, skos_file_for
 
 ALL_LANGUAGES = list(languages.available_languages.values())
@@ -15,18 +16,17 @@ def test_wiki_archive_is_the_default_engine():
     assert DEFAULT_ENGINE == WIKI_ARCHIVE
 
 
-def test_databus_is_known_but_not_implemented():
+def test_databus_is_available_and_implemented():
     assert DATABUS in engines.available_engines
-    assert DATABUS not in engines.implemented_engines
+    assert DATABUS in engines.implemented_engines
 
 
 def test_wiki_archive_is_implemented():
     assert WIKI_ARCHIVE in engines.implemented_engines
 
 
-def test_validating_the_databus_engine_raises_not_implemented():
-    with pytest.raises(NotImplementedError):
-        validate_engine(DATABUS)
+def test_validating_the_databus_engine_passes():
+    assert validate_engine(DATABUS) is None
 
 
 def test_validating_an_unknown_engine_raises_value_error():
@@ -51,9 +51,9 @@ def test_url_uses_the_dbpedia_subdomain_not_the_language_id():
     assert '/uk/skos_categories_uk.ttl.bz2' in skos_url(ukrainian.wikipedia_mapping)
 
 
-def test_url_is_not_built_for_the_databus_engine():
-    with pytest.raises(NotImplementedError):
-        skos_url('en', engine=DATABUS)
+def test_the_wiki_archive_publishes_no_checksum():
+    # Only the Databus ships a sha256 alongside each file
+    assert skos_source('en').sha256 is None
 
 
 def test_url_is_not_built_for_an_unknown_engine():
@@ -72,9 +72,8 @@ def test_client_defaults_to_the_wiki_archive_engine():
     assert FastCat().engine == WIKI_ARCHIVE
 
 
-def test_client_rejects_the_databus_engine():
-    with pytest.raises(NotImplementedError):
-        FastCat(engine=DATABUS)
+def test_client_accepts_the_databus_engine():
+    assert FastCat(engine=DATABUS).engine == DATABUS
 
 
 def test_client_rejects_an_unknown_engine():
@@ -90,4 +89,4 @@ def test_engine_names_are_exported_from_the_package():
 
 def test_supported_engines_lists_both():
     assert set(FastCat.get_supported_engines()) == {WIKI_ARCHIVE, DATABUS}
-    assert set(FastCat.get_implemented_engines()) == {WIKI_ARCHIVE}
+    assert set(FastCat.get_implemented_engines()) == {WIKI_ARCHIVE, DATABUS}

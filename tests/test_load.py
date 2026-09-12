@@ -121,12 +121,18 @@ def test_a_small_batch_flushes_repeatedly(client, dump_path):
     assert client.flushes == [2, 2, 2]
 
 
-def test_loaded_flag_is_set_only_after_every_write(client, dump_path):
+def test_loaded_flags_are_set_only_after_every_write(client, dump_path):
     FastCat(db=client).load(language='en', progress_bar=False, batch_size=2)
 
-    assert client.events[-1] == ('set', 'loaded-skos')
+    assert client.events[-2:] == [('set', 'loaded-skos'), ('set', 'loaded-engine')]
     assert client.flags['loaded-skos'] == '1'
-    assert all(event[0] == 'execute' for event in client.events[:-1])
+    assert all(event[0] == 'execute' for event in client.events[:-2])
+
+
+def test_the_loading_engine_is_recorded(client, dump_path):
+    FastCat(db=client).load(language='en', progress_bar=False)
+
+    assert client.flags['loaded-engine'] == 'wiki-archive'
 
 
 def test_batching_does_not_change_the_result(dump_path):

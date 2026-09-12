@@ -4,13 +4,14 @@ import os
 import sys
 import re
 import bz2
+import hashlib
 from fastcat.utils import normalize_language, print_progress_bar, get_wikipedia_mapping
 from urllib import error, request, parse
 import redis
 import fastcat.store as store
 import fastcat.lang as languages
 import fastcat.engines as engines
-from fastcat.engines import DEFAULT_ENGINE, skos_url, validate_engine
+from fastcat.engines import DEFAULT_ENGINE, skos_source, validate_engine
 
 
 try:
@@ -59,27 +60,56 @@ class FastCatBase(object):
         normalized_language = normalize_language(language)
         wikipedia_mapping = get_wikipedia_mapping(normalized_language)
 
-        url = skos_url(wikipedia_mapping, engine)
+        source = skos_source(wikipedia_mapping, engine)
         skos_file = skos_file_for(normalized_language, engine)
 
         if verbose:
             print('-- request.urlretrieve for file {}'.format(skos_file))
 
         try:
-            request.urlretrieve(url, filename=skos_file)
+            request.urlretrieve(source.url, filename=skos_file)
         except error.HTTPError as http_error:
             # Leaving a truncated file behind would make the next load() skip
             # the download and fail while parsing instead.
-            if os.path.isfile(skos_file):
-                os.remove(skos_file)
+            self._discard(skos_file)
 
             raise RuntimeError(
                 'Could not download the SKOS dump for language {!r} from {} '
                 '({}). The {!r} engine may no longer serve this file.'.format(
-                    normalized_language, url, http_error, engine)) from http_error
+                    normalized_language, source.url, http_error, engine)) from http_error
+
+        # The Databus publishes a checksum per file; the wiki archive does not.
+        if source.sha256:
+            digest = self._sha256(skos_file)
+
+            if digest != source.sha256:
+                self._discard(skos_file)
+
+                raise RuntimeError(
+                    'Checksum mismatch for the {!r} dump downloaded from {}: '
+                    'expected {}, got {}. The file has been discarded.'.format(
+                        normalized_language, source.url, source.sha256, digest))
+
+            if verbose:
+                print('Checksum verified ({})'.format(digest[:16]))
 
         if verbose:
             print("Finished downloading {} file".format(skos_file))
+
+    @staticmethod
+    def _discard(path):
+        if os.path.isfile(path):
+            os.remove(path)
+
+    @staticmethod
+    def _sha256(path, chunk_size=1024 * 1024):
+        digest = hashlib.sha256()
+
+        with open(path, 'rb') as handle:
+            for chunk in iter(lambda: handle.read(chunk_size), b''):
+                digest.update(chunk)
+
+        return digest.hexdigest()
 
     def _name(self, url_pattern, language):
         if language == languages.available_languages['English'].id:
@@ -228,6 +258,22 @@ class FastCat(FastCatBase):
         else:
             return False
 
+    def _loaded_engine(self):
+        """Which engine's data populates this redis db, or None if it is empty.
+
+        Data written before 0.3.0 carries no engine marker; the wiki archive
+        was the only source then, so that is what it is taken to be.
+        """
+        if not self.db.get("loaded-skos"):
+            return None
+
+        recorded = self.db.get("loaded-engine")
+
+        if recorded is None:
+            return engines.WIKI_ARCHIVE
+
+        return recorded.decode('utf-8') if isinstance(recorded, bytes) else recorded
+
     def load(self, language=None, verbose=False, progress_bar=True, engine=None,
              batch_size=DEFAULT_BATCH_SIZE):
         """Fill Redis with Wikipedia SKOS data.
@@ -257,7 +303,23 @@ class FastCat(FastCatBase):
             engine = self.engine
         validate_engine(engine)
 
-        if self._is_loaded(language, verbose):
+        loaded_engine = self._loaded_engine()
+
+        if loaded_engine is not None:
+            if loaded_engine != engine:
+                # The engines publish different snapshots of Wikipedia. Writing
+                # one on top of the other would merge them into a single set of
+                # relations belonging to neither.
+                raise RuntimeError(
+                    'Language {!r} is already loaded in this redis db from the '
+                    '{!r} engine, so loading {!r} data would merge two '
+                    'different snapshots. Flush this db first (e.g. '
+                    'FastCat.db.flushdb()) or point this language at another '
+                    'db.'.format(language, loaded_engine, engine))
+
+            if verbose:
+                self._is_loaded(language, verbose)
+
             print('Loading aborted (language already exists)')
             return
 
@@ -367,3 +429,4 @@ class FastCat(FastCatBase):
         # Only once every triple is in, so an interrupted load is not mistaken
         # for a complete one
         self.db.set("loaded-skos", "1")
+        self.db.set("loaded-engine", engine)

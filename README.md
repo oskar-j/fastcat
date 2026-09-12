@@ -104,21 +104,50 @@ The `engine` argument selects the download source:
 
 | Engine | Status | What it downloads |
 | --- | --- | --- |
-| `wiki-archive` | **default** | DBpedia's archived [2016-10 release](https://downloads.dbpedia.org/wiki-archive/dbpedia-version-2016-10.html) |
-| `databus` | not implemented yet | DBpedia's current [Databus](https://databus.dbpedia.org/) distribution |
+| `wiki-archive` | **default** | DBpedia's archived [2016-10 release](https://downloads.dbpedia.org/wiki-archive/dbpedia-version-2016-10.html) -- fixed URLs, data frozen in 2016 |
+| `databus` | available | DBpedia's current [Databus](https://databus.dbpedia.org/) release (2022.12.01) -- current data, resolved through metadata |
 
-Asking for `databus` raises `NotImplementedError`:
+For up-to-date categories, ask for the Databus:
 
 ```python
->>> fastcat.FastCat(engine='databus')
-NotImplementedError: The 'databus' engine is not implemented yet. Use 'wiki-archive' instead (the default).
+>>> f = fastcat.FastCat(engine='databus')
+>>> f.load(language='et')
 ```
 
-Note that the archived release is a **snapshot of Wikipedia as it stood in
-2016**, so categories added since then are missing. That is the price of stable
-URLs: the rolling `current` tree fastcat used before was withdrawn by DBpedia
-and every URL under it now returns 404. Fetching today's data is what the
-`databus` engine is for.
+The Databus has no fixed download URLs, so fastcat resolves the newest version
+of the `generic/categories` artifact and picks the SKOS part for your language.
+It also publishes a sha256 per file, which fastcat checks after downloading; a
+mismatch discards the file rather than loading it.
+
+##### The two engines are not interchangeable
+
+They are different snapshots of Wikipedia, six years apart, and the categories
+really do differ:
+
+```python
+>>> fastcat.FastCat(engine='wiki-archive').broader("Tallinn")   # 2016
+['Eesti linnad', 'Harju maakonna omavalitsused', 'Hansalinnad']
+>>> fastcat.FastCat(engine='databus').broader("Tallinn")        # 2022
+['Eesti asulate kategooriad', 'Harju maakonna omavalitsusüksuste kategooriad']
+```
+
+Estonian is 31,678 keys from the archive and 41,254 from the Databus. Because
+mixing them would produce a set of relations belonging to neither snapshot,
+fastcat records which engine filled a Redis db and refuses to load the other on
+top:
+
+```python
+>>> f = fastcat.FastCat(engine='databus')
+>>> f.load(language='et')
+>>> f.load(language='et', engine='wiki-archive')
+RuntimeError: Language 'et' is already loaded in this redis db from the 'databus'
+engine, so loading 'wiki-archive' data would merge two different snapshots.
+Flush this db first (e.g. FastCat.db.flushdb()) or point this language at another db.
+```
+
+`wiki-archive` stays the default: it needs no metadata lookup, is unaffected by
+the Databus being down, and leaves existing installs on the data they already
+have.
 
 You can list the engines from code:
 
@@ -126,7 +155,7 @@ You can list the engines from code:
 >>> fastcat.FastCat.get_supported_engines()
 ('wiki-archive', 'databus')
 >>> fastcat.FastCat.get_implemented_engines()
-('wiki-archive',)
+('wiki-archive', 'databus')
 ```
 
 Install
@@ -235,7 +264,7 @@ It's still in early stage of development, please share some feedback with me (un
 DBpedia SKOS files move around, and that has already bitten this project once: the rolling `current` tree fastcat
 downloaded from was withdrawn, and *downloading Wikipedia data* stopped working entirely until `0.2.3` repointed it at
 the archived 2016-10 release. Pinning to an archive buys stable URLs at the cost of **data that stops in 2016** --
-until the `databus` engine lands, categories created after that are simply not there. Moreover, due to the
+so pass `engine='databus'` for current categories. Moreover, due to the
 [infrastructure of Redis](http://www.mikeperham.com/2015/09/24/storing-data-with-redis/), you can have a maximum number
 of 16 languages (1 slot for a language). Last but not least, it takes around `40 MB` of your web transfer (size depends
 on the selected language) to download a single SKOS file.
@@ -256,7 +285,6 @@ Second way is to call the `get_supported_languages()` method on the `FastCat` ob
 
 #### What's coming next?
 
-Implementing the `databus` engine, so fastcat can pull current categories instead of a 2016 snapshot.
 Support for the rest of european languages. Exporting n-size tree of categories to a CSV or GraphML file.
 Moving the downloaded dumps and the language mapping out of the package directory into a proper user cache
 directory.

@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-12
+
+### Added
+
+- **The `databus` engine is implemented.** `FastCat(engine='databus')` now
+  downloads current category data from DBpedia's
+  [Databus](https://databus.dbpedia.org/) instead of the 2016 archive. Files
+  there have no fixed URLs, so the engine resolves the newest version of the
+  `generic/categories` artifact and picks the `skos` part for the language.
+  All nine supported languages are available (138 in total on the Databus).
+- Downloads are verified against the sha256 the Databus publishes for each
+  file; a mismatch discards the file and raises. The wiki archive publishes no
+  checksums, so nothing changes there.
+- `databus_source()`, `latest_databus_version()`, `databus_parts()` and
+  `skos_source()` in `fastcat.engines`, plus `clear_cache()` for the metadata
+  cache. `skos_source()` returns the URL and checksum together; `skos_url()`
+  remains as a thin wrapper.
+- Databus metadata lookups retry transient failures (3 attempts) rather than
+  failing a whole load -- a real blip was seen while developing this.
+- `load()` records which engine populated a Redis db, and refuses to load one
+  engine's data on top of the other's, which would merge two different
+  snapshots of Wikipedia into relations belonging to neither. Flush the db (or
+  use another) to switch engines. Data loaded before 0.3.0 counts as
+  wiki-archive, which is what it was.
+
+### Changed
+
+- `engine='databus'` no longer raises `NotImplementedError`.
+- The two engines return genuinely different data, which is the point. Estonian
+  is 31,678 keys from the 2016 archive and 41,254 from the Databus, and
+  relations differ: `broader("Tallinn")` gives `['Eesti linnad', 'Harju
+  maakonna omavalitsused', 'Hansalinnad']` from the 2016 archive and
+  `['Eesti asulate kategooriad', 'Harju maakonna omavalitsusüksuste
+  kategooriad']` from the 2022.12.01 release.
+
+`wiki-archive` remains the default: it needs no metadata lookup, cannot be
+affected by the Databus being down, and keeps existing installs on the data
+they already have. Pass `engine='databus'` for current categories.
+
 ## [0.2.5] - 2026-09-12
 
 ### Changed
@@ -173,7 +212,8 @@ No library code changed in this release; it is packaging and CI only.
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/oskar-j/fastcat/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/oskar-j/fastcat/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/oskar-j/fastcat/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/oskar-j/fastcat/compare/v0.2.2...v0.2.3
