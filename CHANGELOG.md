@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-09-12
+
+### Changed
+
+- Release workflow moved off actions still running on Node.js 20, which GitHub
+  now forces onto Node.js 24 with a deprecation warning on every run:
+  `actions/upload-artifact` v4 -> v7 and `actions/download-artifact` v4 -> v8.
+  Node.js 24 became the default in upload-artifact v6 and download-artifact v7,
+  so the earlier majors would not have cleared the warning.
+
+No library code changed in this release; it is packaging and CI only.
+
 ## [0.2.4] - 2026-09-12
 
 ### Changed
@@ -161,7 +173,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/oskar-j/fastcat/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/oskar-j/fastcat/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/oskar-j/fastcat/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/oskar-j/fastcat/compare/v0.2.1...v0.2.2
