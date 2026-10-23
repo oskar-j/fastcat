@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-23
+
+There is no 0.3.1: that version number was planned for the README refresh,
+which was merged without a release, so it ships here instead.
+
 ### Added
 
 - `fastcat.utils.resolve_language()`: normalises a language code like
@@ -264,7 +269,8 @@ No library code changed in this release; it is packaging and CI only.
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/oskar-j/fastcat/compare/v0.3.0...v0.3.2
 [0.3.0]: https://github.com/oskar-j/fastcat/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/oskar-j/fastcat/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/oskar-j/fastcat/compare/v0.2.3...v0.2.4
