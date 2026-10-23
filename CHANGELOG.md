@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- README refreshed. The cat logo is replaced by a banner, in light and dark
+  variants that follow the reader's system theme, drawn from fastcat's own
+  output: the English dump, what `load()` makes of it in Redis, and the two
+  sets `broader()` and `narrower()` read for "Computer programming".
+- Every usage example was re-run against a real Redis. Two were wrong and are
+  fixed: the Databus examples called `FastCat(engine='databus').load(language='et')`,
+  which loads Estonian into the English db (and raises if English is already
+  there), and the German example showed 5 of the 31 categories under `Berlin`
+  as if they were all of them.
+- New sections: a quick start, connecting to Redis (keyword arguments, the
+  `FASTCAT_REDIS_*` variables, passing your own client), the `load()`
+  arguments, where dumps are cached, and a table of supported languages with
+  the codes each one accepts.
+- Install instructions brought up to date: `brew services start redis`, WSL or
+  Docker instead of the retired Windows port, `docker run` for pip users, and
+  `uv add fastcat`.
+- Two new badges, `uv` and last commit; links moved to https.
+
 ## [0.3.0] - 2026-09-12
 
 ### Added
