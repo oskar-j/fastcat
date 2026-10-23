@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-23
+
 ### Added
 
 - `load()` records which language filled a db (`loaded-language`, next to
@@ -290,7 +292,8 @@ No library code changed in this release; it is packaging and CI only.
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/oskar-j/fastcat/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/oskar-j/fastcat/compare/v0.3.0...v0.3.2
 [0.3.0]: https://github.com/oskar-j/fastcat/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/oskar-j/fastcat/compare/v0.2.4...v0.2.5
