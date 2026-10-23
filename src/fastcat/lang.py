@@ -18,5 +18,5 @@ available_languages = {'Czech': Language(id='cs', locales=['cs-cs'],
                                               alternate='por', wikipedia_mapping='pt'),
                        'Russian': Language(id='ru', locales=['ru-ru'],
                                            alternate='rus', wikipedia_mapping='ru'),
-                       'Ukrainian': Language(id='ua', locales=['ua-ua'],
+                       'Ukrainian': Language(id='ua', locales=['ua-ua', 'uk-ua'],
                                              alternate='ukr', wikipedia_mapping='uk')}

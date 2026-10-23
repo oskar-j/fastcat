@@ -1,5 +1,7 @@
 """Offline checks on the language -> Redis db-slot bookkeeping."""
 
+import os
+
 import pytest
 
 
@@ -36,3 +38,14 @@ def test_language_is_resolvable_from_its_slot(isolated_store):
 
 def test_unassigned_slot_resolves_to_none(isolated_store):
     assert isolated_store.get_language(slot=15) is None
+
+
+@pytest.mark.parametrize('key', [None, 'fr', 'uk', 'pt-BR'])
+def test_only_language_ids_are_given_a_slot(isolated_store, key):
+    # Unrecognised codes used to reach here as None and were pickled for good,
+    # holding a Redis db (#22). Aliases must be normalised before this point.
+    with pytest.raises(ValueError):
+        isolated_store.save_settings(key)
+
+    assert isolated_store.languages == {'en': 0}
+    assert not os.path.exists(isolated_store.settings_filename)

@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-23
+
+There is no 0.3.1: that version number was planned for the README refresh,
+which was merged without a release, so it ships here instead.
+
+### Added
+
+- `fastcat.utils.resolve_language()`: normalises a language code like
+  `normalize_language()`, but raises a `ValueError` naming the supported
+  languages instead of returning `None`.
+
+### Changed
+
+- The package summary on PyPI is now "Wikipedia's category graph in your own
+  Redis: load a DBpedia dump once, then look up broader and narrower
+  categories locally, without the Wikipedia API.", matching the GitHub
+  description.
+
+### Fixed
+
+- `uk`, Ukrainian's ISO 639-1 language code and DBpedia subdomain, is
+  accepted wherever a language is (as are `uk-UA` and `uk_UA`). It means
+  Ukrainian, not the United Kingdom: like every fastcat code it is a language
+  code, and English stays `en`. fastcat's own id for Ukrainian is still `ua`
+  (Ukraine's country code), so existing data and slot assignments are
+  untouched ([#22](https://github.com/oskar-j/fastcat/issues/22)).
+- An unrecognised language raises a `ValueError` before anything is written.
+  It used to be given a Redis db under the name `None`, saved to the settings
+  pickle for good, and `load()` then failed with a bare `LookupError`; later
+  unrecognised codes silently shared that db. A `None` entry already in a
+  pickle stays there, but nothing can reach it any more
+  ([#22](https://github.com/oskar-j/fastcat/issues/22)).
+- `switch_language()` and `load(language=...)` accept the same spellings as
+  the constructor (`pt-BR`, `ger`, `uk`). They used the code as given, which
+  failed further in: at the category-prefix lookup, or with a download for a
+  language that does not exist.
+
 ### Documentation
 
 - README refreshed. The cat logo is replaced by a banner, in light and dark
@@ -232,7 +269,8 @@ No library code changed in this release; it is packaging and CI only.
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/oskar-j/fastcat/compare/v0.3.0...v0.3.2
 [0.3.0]: https://github.com/oskar-j/fastcat/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/oskar-j/fastcat/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/oskar-j/fastcat/compare/v0.2.3...v0.2.4
