@@ -189,11 +189,14 @@ prefix (`Kategorie:` for German).
 | Polish | `pl` | `pol`, `pl-PL` | `Kategoria:` |
 | Portuguese | `pt` | `por`, `pt-PT`, `pt-BR` | `Categoria:` |
 | Russian | `ru` | `rus`, `ru-RU` | `Категория:` |
-| Ukrainian | `ua` | `ukr` | `Категорія:` |
+| Ukrainian | `ua` | `uk`, `ukr`, `uk-UA` | `Категорія:` |
 
-Codes are case-insensitive, and `_` works in place of `-` (`pt_BR`). Note that
-Ukrainian is **`ua`**, not its ISO 639-1 code `uk`, which fastcat does not
-recognise yet.
+Codes are case-insensitive, and `_` works in place of `-` (`pt_BR`). They are
+language codes, not country codes, which is why Czech is `cs` rather than `cz`.
+Ukrainian is the exception: its id in fastcat is `ua` (Ukraine's country code)
+for historical reasons, but its language code `uk` works too. `uk` therefore
+means Ukrainian, not the United Kingdom; British English is `en` or `en-GB`.
+Any other code raises a `ValueError` that lists the supported ones.
 
 #### Connecting to Redis
 
