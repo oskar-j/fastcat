@@ -152,7 +152,8 @@ class FastCat(FastCatBase):
             No need to pass any extra arguments if you don't understand what you're doing
 
         Args:
-            db (:obj:`Redis`, optional): Custom Redis client.
+            db (:obj:`Redis`, optional): Custom Redis client. It is used as it
+                is: whatever db it points at holds this object's language.
             language (:obj:`str`, optional): Choose the default language, by its
                 code (``'de'``), ISO 639-2 code (``'ger'``), locale (``'de-DE'``)
                 or DBpedia code (``'uk'`` for Ukrainian).
@@ -197,6 +198,7 @@ class FastCat(FastCatBase):
 
                 # Initialize connection for English dataset
                 db = redis.Redis(**options)  # default is db=0
+                language = 'en'
             else:
 
                 # Initialize connection for any other language dataset
@@ -210,6 +212,12 @@ class FastCat(FastCatBase):
         # There must be always only one redis client
         self.db = db
 
+        # The language load() fills this db with and get_current_language()
+        # reports. Given explicitly, it holds even for a client of the caller's
+        # own, whatever db that points at (#23). Left out with such a client,
+        # it is None and looked up from the client's db slot instead.
+        self.language = language
+
     def switch_language(self, language):
         """Switch language on an existing FastCat object.
 
@@ -222,15 +230,34 @@ class FastCat(FastCatBase):
 
             slot = store.get_slot(language)
             self.db = redis.Redis(db=slot, **self._options)
+            self.language = language
         except ValueError:
 
             slot = store.save_settings(language)
             self.db = redis.Redis(db=slot, **self._options)
+            self.language = language
             self.load(language)
 
     def get_current_language(self):
-        """Get current language."""
-        return store.get_language(slot=self.db.connection_pool.connection_kwargs['db'])
+        """Get current language, as a pycountry record, or None if unknown.
+
+        That is the language given to the constructor (or to
+        :meth:`switch_language`), and otherwise whichever language the slot
+        store assigns to the client's db.
+        """
+        language = self._language_id()
+
+        return None if language is None else store.language_info(language)
+
+    def _db_index(self):
+        return self.db.connection_pool.connection_kwargs.get('db', 0)
+
+    def _language_id(self):
+        """The fastcat id of this object's language, or None if unknown."""
+        if self.language is not None:
+            return self.language
+
+        return store.get_language_id(self._db_index())
 
     @staticmethod
     def get_supported_languages():
@@ -283,6 +310,22 @@ class FastCat(FastCatBase):
 
         return recorded.decode('utf-8') if isinstance(recorded, bytes) else recorded
 
+    def _loaded_language(self):
+        """Which language populates this redis db, or None if that is unknown.
+
+        Unknown means the db is empty, or was loaded before the language was
+        recorded (0.3.3).
+        """
+        if not self.db.get("loaded-skos"):
+            return None
+
+        recorded = self.db.get("loaded-language")
+
+        if recorded is None:
+            return None
+
+        return recorded.decode('utf-8') if isinstance(recorded, bytes) else recorded
+
     def load(self, language=None, verbose=False, progress_bar=True, engine=None,
              batch_size=DEFAULT_BATCH_SIZE):
         """Fill Redis with Wikipedia SKOS data.
@@ -300,14 +343,23 @@ class FastCat(FastCatBase):
 
         Raises:
             ValueError: ``batch_size`` is smaller than 1, or the language is
-                not recognised.
+                not recognised or cannot be worked out.
+            RuntimeError: The db already holds another language, or the same
+                language from another engine.
         """
         if batch_size < 1:
             raise ValueError(
                 'batch_size must be at least 1, got {!r}'.format(batch_size))
 
         if language is None:
-            language = self.get_current_language().alpha_2.lower()
+            language = self._language_id()
+
+            if language is None:
+                raise ValueError(
+                    'No language to load: this client is on redis db {}, which '
+                    'no language is assigned to. Name one, e.g. '
+                    'FastCat(db=client, language=\'et\') or '
+                    'load(language=\'et\').'.format(self._db_index()))
         else:
             # Everything below (the cache file name, the category-prefix
             # pattern) keys on the normalised id, so 'uk' or 'pt-BR' would
@@ -321,6 +373,17 @@ class FastCat(FastCatBase):
         loaded_engine = self._loaded_engine()
 
         if loaded_engine is not None:
+            loaded_language = self._loaded_language()
+
+            if loaded_language is not None and loaded_language != language:
+                # Otherwise the load would be skipped below as "already
+                # loaded", and this language's lookups answered from another
+                raise RuntimeError(
+                    'This redis db already holds {!r} categories, so it cannot '
+                    'also hold {!r}. Flush it first (e.g. FastCat.db.flushdb()) '
+                    'or use another db for {!r}.'.format(
+                        loaded_language, language, language))
+
             if loaded_engine != engine:
                 # The engines publish different snapshots of Wikipedia. Writing
                 # one on top of the other would merge them into a single set of
@@ -445,3 +508,4 @@ class FastCat(FastCatBase):
         # for a complete one
         self.db.set("loaded-skos", "1")
         self.db.set("loaded-engine", engine)
+        self.db.set("loaded-language", language)
