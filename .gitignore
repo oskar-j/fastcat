@@ -17,3 +17,7 @@ venv/
 # Editors
 /.idea
 .vscode/
+
+# Local-only tooling: the banner generator lives here but is deliberately not
+# part of the repository. The banners it produces (docs/) are committed.
+/tools

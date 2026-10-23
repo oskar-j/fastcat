@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="905" viewBox="0 0 1200 905" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" role="img" aria-label="fastcat: the 2016-10 English DBpedia dump loaded into Redis db 0; “Computer programming” has 2 broader and 26 narrower categories">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#151c31"/></linearGradient></defs>
+<rect x="0" y="0" width="1200" height="905" fill="url(#bg)"/>
+<text x="600" y="82" text-anchor="middle" font-size="46" font-weight="700" fill="#eef2ff" letter-spacing="1.5">fastcat</text>
+<text x="600" y="118" text-anchor="middle" font-size="18" fill="#8ea2c8" letter-spacing="0.3">Wikipedia’s category graph in a local Redis — load a DBpedia dump once, then every hop is a single lookup</text>
+<line x1="60" y1="148" x2="1140" y2="148" stroke="#28324c" stroke-width="1"/>
+<rect x="60" y="172" width="460" height="196" rx="14" fill="#111a2e" stroke="#243049" stroke-width="1"/>
+<text x="82" y="206" font-size="14" font-weight="700" fill="#c3d0ee" letter-spacing="1">1 · THE DUMP</text>
+<text x="82" y="242" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="18" font-weight="600" fill="#eef2ff">skos_categories_en.ttl.bz2</text>
+<text x="82" y="270" font-size="15" fill="#8ea2c8">45.7 MB of bzip2’d N-Triples · DBpedia 2016-10 release</text>
+<rect x="82" y="286" width="416" height="66" rx="8" fill="#0c1324" stroke="#243049" stroke-width="1"/>
+<text x="94" y="306" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="13" fill="#b79cff">&lt;…/Category:Computer_programming&gt;</text>
+<text x="94" y="324" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="13" fill="#6b7a99">  &lt;…/skos/core#broader&gt;</text>
+<text x="94" y="342" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="13" fill="#4cc3ff">  &lt;…/Category:Software_engineering&gt; .</text>
+<line x1="534" y1="264" x2="662" y2="264" stroke="#4a5874" stroke-width="2"/>
+<polygon points="668,264 657.5,257 657.5,271" fill="#4a5874"/>
+<text x="600" y="250" text-anchor="middle" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="18" font-weight="600" fill="#eef2ff">load()</text>
+<text x="600" y="292" text-anchor="middle" font-size="13" fill="#8ea2c8">streamed once,</text>
+<text x="600" y="310" text-anchor="middle" font-size="13" fill="#8ea2c8">pipelined writes</text>
+<rect x="680" y="172" width="460" height="196" rx="14" fill="#111a2e" stroke="#243049" stroke-width="1"/>
+<text x="702" y="206" font-size="14" font-weight="700" fill="#c3d0ee" letter-spacing="1">2 · REDIS, DB 0 · ENGLISH</text>
+<text x="702" y="248" font-size="32" font-weight="700" fill="#eef2ff">1,838,204</text>
+<text x="860" y="248" font-size="15" fill="#8ea2c8">keys — a set per category, per direction</text>
+<text x="702" y="278" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="14" font-weight="700" fill="#4cc3ff">b:</text>
+<text x="719" y="278" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="14" fill="#c3d0ee">&lt;category&gt;</text>
+<text x="852" y="278" font-size="14" fill="#8ea2c8">1,265,053 sets of broader categories</text>
+<text x="702" y="300" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="14" font-weight="700" fill="#f2b73c">n:</text>
+<text x="719" y="300" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="14" fill="#c3d0ee">&lt;category&gt;</text>
+<text x="852" y="300" font-size="14" fill="#8ea2c8">573,151 sets of narrower categories</text>
+<rect x="702" y="316" width="20" height="20" rx="4" fill="#3a1618" stroke="#ff6b5e" stroke-width="1.4"/>
+<text x="712" y="330" text-anchor="middle" font-size="10" font-weight="700" fill="#ff6b5e">en</text>
+<rect x="726.6" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="736.6" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">1</text>
+<rect x="751.2" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="761.2" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">2</text>
+<rect x="775.8" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="785.8" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">3</text>
+<rect x="800.4" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="810.4" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">4</text>
+<rect x="825" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="835" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">5</text>
+<rect x="849.6" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="859.6" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">6</text>
+<rect x="874.2" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="884.2" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">7</text>
+<rect x="898.8" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="908.8" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">8</text>
+<rect x="923.4" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="933.4" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">9</text>
+<rect x="948" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="958" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">10</text>
+<rect x="972.6" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="982.6" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">11</text>
+<rect x="997.2" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="1007.2" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">12</text>
+<rect x="1021.8" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="1031.8" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">13</text>
+<rect x="1046.4" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="1056.4" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">14</text>
+<rect x="1071" y="316" width="20" height="20" rx="4" fill="#1a2440" stroke="#243049" stroke-width="1"/>
+<text x="1081" y="330" text-anchor="middle" font-size="9" fill="#6b7a99">15</text>
+<text x="702" y="356" font-size="13" fill="#6b7a99">one Redis db per language, 16 in all · English is always db 0</text>
+<rect x="60" y="388" width="1080" height="489" rx="14" fill="#111a2e" stroke="#243049" stroke-width="1"/>
+<text x="82" y="422" font-size="14" font-weight="700" fill="#c3d0ee" letter-spacing="1">3 · EVERY HOP IS ONE LOOKUP</text>
+<rect x="365" y="438" width="470" height="82" rx="12" fill="none" stroke="#4cc3ff" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.8"/>
+<text x="381" y="462" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="13.5" font-weight="600" fill="#4cc3ff">b:Computer programming</text>
+<text x="819" y="462" text-anchor="end" font-size="12.5" fill="#6b7a99" letter-spacing="0.6">SET · 2 members</text>
+<rect x="413.7" y="476" width="183.2" height="32" rx="16" fill="#10293f" stroke="#4cc3ff" stroke-width="1.4"/>
+<text x="505.3" y="497.2" text-anchor="middle" font-size="15" fill="#d7f1ff">Software development</text>
+<rect x="610.9" y="476" width="175.4" height="32" rx="16" fill="#10293f" stroke="#4cc3ff" stroke-width="1.4"/>
+<text x="698.6" y="497.2" text-anchor="middle" font-size="15" fill="#d7f1ff">Software engineering</text>
+<line x1="600" y1="528" x2="600" y2="552" stroke="#4cc3ff" stroke-width="2"/>
+<polygon points="600,521 594,530 606,530" fill="#4cc3ff"/>
+<text x="616" y="542" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="13.5" fill="#4cc3ff">f.broader(&quot;Computer programming&quot;)</text>
+<line x1="600" y1="600" x2="600" y2="624" stroke="#f2b73c" stroke-width="2"/>
+<polygon points="600,631 594,622 606,622" fill="#f2b73c"/>
+<text x="616" y="620" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="13.5" fill="#f2b73c">f.narrower(&quot;Computer programming&quot;)</text>
+<rect x="457" y="554" width="286.1" height="44" rx="22" fill="#251c45" stroke="#b79cff" stroke-width="1.4"/>
+<text x="600" y="583" text-anchor="middle" font-size="20" font-weight="700" fill="#f1ebff">Computer programming</text>
+<rect x="82" y="632" width="1036" height="225" rx="12" fill="none" stroke="#f2b73c" stroke-width="1.2" stroke-dasharray="5 4" opacity="0.8"/>
+<text x="98" y="656" font-family="Menlo,'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="13.5" font-weight="600" fill="#f2b73c">n:Computer programming</text>
+<text x="1102" y="656" text-anchor="end" font-size="12.5" fill="#6b7a99" letter-spacing="0.6">SET · 26 members</text>
+<rect x="138.5" y="672" width="92.8" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="184.9" y="690.4" text-anchor="middle" font-size="14" fill="#ffeccc">Algorithms</text>
+<rect x="241.3" y="672" width="106.5" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="294.5" y="690.4" text-anchor="middle" font-size="14" fill="#ffeccc">Anti-patterns</text>
+<rect x="357.8" y="672" width="131.6" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="423.6" y="690.4" text-anchor="middle" font-size="14" fill="#ffeccc">Code refactoring</text>
+<rect x="499.4" y="672" width="142.9" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="570.9" y="690.4" text-anchor="middle" font-size="14" fill="#ffeccc">Computer libraries</text>
+<rect x="652.4" y="672" width="178.5" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="741.6" y="690.4" text-anchor="middle" font-size="14" fill="#ffeccc">Computer programmers</text>
+<rect x="840.9" y="672" width="220.6" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="951.2" y="690.4" text-anchor="middle" font-size="14" fill="#ffeccc">Computer programming books</text>
+<rect x="113.4" y="707" width="228.7" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="227.7" y="725.4" text-anchor="middle" font-size="14" fill="#ffeccc">Computer programming folklore</text>
+<rect x="352.1" y="707" width="212.5" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="458.3" y="725.4" text-anchor="middle" font-size="14" fill="#ffeccc">Computer programming tools</text>
+<rect x="574.6" y="707" width="167.2" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="658.2" y="725.4" text-anchor="middle" font-size="14" fill="#ffeccc">Concurrent computing</text>
+<rect x="751.8" y="707" width="122.7" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="813.2" y="725.4" text-anchor="middle" font-size="14" fill="#ffeccc">Data structures</text>
+<rect x="884.6" y="707" width="94.4" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="931.8" y="725.4" text-anchor="middle" font-size="14" fill="#ffeccc">Debugging</text>
+<rect x="989" y="707" width="97.6" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="1037.8" y="725.4" text-anchor="middle" font-size="14" fill="#ffeccc">Live coding</text>
+<rect x="172.5" y="742" width="147" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="246" y="760.4" text-anchor="middle" font-size="14" fill="#ffeccc">Program derivation</text>
+<rect x="329.5" y="742" width="181.8" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="420.4" y="760.4" text-anchor="middle" font-size="14" fill="#ffeccc">Programming constructs</text>
+<rect x="521.3" y="742" width="169.6" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="606.1" y="760.4" text-anchor="middle" font-size="14" fill="#ffeccc">Programming contests</text>
+<rect x="700.9" y="742" width="159.1" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="780.5" y="760.4" text-anchor="middle" font-size="14" fill="#ffeccc">Programming games</text>
+<rect x="870" y="742" width="157.5" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="948.8" y="760.4" text-anchor="middle" font-size="14" fill="#ffeccc">Programming idioms</text>
+<rect x="136.1" y="777" width="182.6" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="227.4" y="795.4" text-anchor="middle" font-size="14" fill="#ffeccc">Programming languages</text>
+<rect x="328.7" y="777" width="183.4" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="420.3" y="795.4" text-anchor="middle" font-size="14" fill="#ffeccc">Programming paradigms</text>
+<rect x="522" y="777" width="176.9" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="610.5" y="795.4" text-anchor="middle" font-size="14" fill="#ffeccc">Programming principles</text>
+<rect x="709" y="777" width="159.9" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="788.9" y="795.4" text-anchor="middle" font-size="14" fill="#ffeccc">Self-hosting software</text>
+<rect x="878.9" y="777" width="185" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="971.4" y="795.4" text-anchor="middle" font-size="14" fill="#ffeccc">Software design patterns</text>
+<rect x="284.5" y="812" width="163.2" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="366.1" y="830.4" text-anchor="middle" font-size="14" fill="#ffeccc">Software optimization</text>
+<rect x="457.7" y="812" width="105.7" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="510.6" y="830.4" text-anchor="middle" font-size="14" fill="#ffeccc">Source code</text>
+<rect x="573.4" y="812" width="178.6" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="662.7" y="830.4" text-anchor="middle" font-size="14" fill="#ffeccc">Source code generation</text>
+<rect x="762" y="812" width="153.5" height="27" rx="13.5" fill="#33270f" stroke="#f2b73c" stroke-width="1.4"/>
+<text x="838.8" y="830.4" text-anchor="middle" font-size="14" fill="#ffeccc">Visual programming</text>
+</svg>
