@@ -19,8 +19,6 @@ API](http://en.wikipedia.org/w/api.php). Fastcat relies on Redis and the
 [SKOS files](https://downloads.dbpedia.org/2016-10/core-i18n/) that DBpedia makes available based on 
 the Wikipedia [MySQL dumps](http://dumps.wikimedia.org/enwiki/latest/).
 
-![fastcat logo](https://datageek.pl/assets/img/projects/fast_cat.png)
-
 Attribution
 -----
 
