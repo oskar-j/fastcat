@@ -3,7 +3,7 @@
 import pytest
 
 import fastcat.lang as languages
-from fastcat.utils import get_wikipedia_mapping, normalize_language
+from fastcat.utils import get_wikipedia_mapping, normalize_language, resolve_language
 
 ALL_LANGUAGES = list(languages.available_languages.values())
 
@@ -48,6 +48,33 @@ def test_normalization_is_case_and_separator_insensitive(raw, expected):
 
 def test_unknown_language_normalizes_to_none():
     assert normalize_language('kl') is None
+
+
+@pytest.mark.parametrize('language', ALL_LANGUAGES, ids=lambda lang: lang.id)
+def test_dbpedia_code_normalizes_to_the_id(language):
+    assert normalize_language(language.wikipedia_mapping) == language.id
+
+
+@pytest.mark.parametrize('raw', ['uk', 'UK', 'uk-UA', 'uk_ua', 'ua', 'ukr'])
+def test_every_spelling_of_ukrainian_normalizes_to_ua(raw):
+    # 'uk' is Ukrainian's ISO 639-1 code and its DBpedia subdomain, and the
+    # first thing most people will type; fastcat's own id is 'ua'
+    assert normalize_language(raw) == 'ua'
+
+
+@pytest.mark.parametrize('raw,expected', [('de', 'de'), ('ger', 'de'), ('pt-BR', 'pt'), ('uk', 'ua')])
+def test_resolve_language_returns_the_id(raw, expected):
+    assert resolve_language(raw) == expected
+
+
+def test_resolve_language_rejects_an_unknown_language():
+    with pytest.raises(ValueError) as excinfo:
+        resolve_language('kl')
+
+    message = str(excinfo.value)
+    assert "'kl'" in message
+    # names what would have worked
+    assert all(language.id in message for language in ALL_LANGUAGES)
 
 
 @pytest.mark.parametrize('language', ALL_LANGUAGES, ids=lambda lang: lang.id)

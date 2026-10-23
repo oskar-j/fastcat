@@ -5,7 +5,8 @@ import sys
 import re
 import bz2
 import hashlib
-from fastcat.utils import normalize_language, print_progress_bar, get_wikipedia_mapping
+from fastcat.utils import (normalize_language, print_progress_bar, get_wikipedia_mapping,
+                           resolve_language)
 from urllib import error, request, parse
 import redis
 import fastcat.store as store
@@ -152,24 +153,28 @@ class FastCat(FastCatBase):
 
         Args:
             db (:obj:`Redis`, optional): Custom Redis client.
-            language (:obj:`str`, optional): Choose the default language.
+            language (:obj:`str`, optional): Choose the default language, by its
+                code (``'de'``), ISO 639-2 code (``'ger'``), locale (``'de-DE'``)
+                or DBpedia code (``'uk'`` for Ukrainian).
             engine (:obj:`str`, optional): Where dumps are downloaded from. Defaults to
                 ``'wiki-archive'``. See :mod:`fastcat.engines`.
             kwargs (:obj:`dict`, optional): Any arguments, which you wish to pass to the Redis client.
 
         Raises:
-            ValueError: The engine name is not recognised.
-            NotImplementedError: The engine is known but not implemented yet, as
-                ``'databus'`` currently is.
+            ValueError: The engine name or the language is not recognised.
 
         """
 
         super(FastCatBase, self).__init__()
 
-        # Fail before touching redis if the caller asked for an engine that
-        # cannot download anything
+        # Fail before touching redis (or the slot store) if the caller asked
+        # for an engine that cannot download anything, or a language fastcat
+        # does not support
         validate_engine(engine)
         self.engine = engine
+
+        if language is not None:
+            language = resolve_language(language)
 
         # Load most recent language-redis mapping
         store.load_settings()
@@ -195,12 +200,10 @@ class FastCat(FastCatBase):
             else:
 
                 # Initialize connection for any other language dataset
-                normalized_language = normalize_language(language)
-
                 try:
-                    slot = store.get_slot(normalized_language)
+                    slot = store.get_slot(language)
                 except ValueError:
-                    slot = store.save_settings(normalized_language)
+                    slot = store.save_settings(language)
 
                 db = redis.Redis(db=slot, **options)
 
@@ -208,7 +211,13 @@ class FastCat(FastCatBase):
         self.db = db
 
     def switch_language(self, language):
-        """Switch language on an existing FastCat object."""
+        """Switch language on an existing FastCat object.
+
+        Raises:
+            ValueError: The language is not recognised.
+        """
+        language = resolve_language(language)
+
         try:
 
             slot = store.get_slot(language)
@@ -290,7 +299,8 @@ class FastCat(FastCatBase):
                 for a little more speed.
 
         Raises:
-            ValueError: ``batch_size`` is smaller than 1.
+            ValueError: ``batch_size`` is smaller than 1, or the language is
+                not recognised.
         """
         if batch_size < 1:
             raise ValueError(
@@ -298,6 +308,11 @@ class FastCat(FastCatBase):
 
         if language is None:
             language = self.get_current_language().alpha_2.lower()
+        else:
+            # Everything below (the cache file name, the category-prefix
+            # pattern) keys on the normalised id, so 'uk' or 'pt-BR' would
+            # otherwise get as far as the download and then fail
+            language = resolve_language(language)
 
         if engine is None:
             engine = self.engine

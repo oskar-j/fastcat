@@ -2,6 +2,7 @@ import pickle
 import os
 import sys
 import pycountry
+import fastcat.lang as lang
 
 
 try:
@@ -30,6 +31,12 @@ def load_settings():
 
 
 def save_settings(new_key):
+    # A slot handed out here is pickled and kept for good, so anything but a
+    # real language id (an unrecognised code used to arrive here as None)
+    # would hold a Redis db forever.
+    if new_key not in {language.id for language in lang.available_languages.values()}:
+        raise ValueError('Not a supported language id: {!r}'.format(new_key))
+
     new_value = _get_next_slot()
 
     print('Assigning redis id {} to language {}'.format(new_value, new_key))
