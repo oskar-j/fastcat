@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-10-24
+
+### Fixed
+
+- `switch_language()` keeps the connection's settings. It used to rebuild
+  the client from the constructor's keyword arguments. A client passed in as
+  `db` leaves those empty, so the object reconnected to `localhost:6379`
+  without that client's password, SSL or socket. For a language with no db
+  yet, it then downloaded the dump and loaded it into whatever Redis ran
+  there. The new client now comes from the current one's connection pool,
+  so it reaches the same server with the same settings
+  ([#28](https://github.com/oskar-j/fastcat/issues/28)).
+- `get_current_language()` reports Ukrainian as `'Ukrainian'`, not
+  `'Ukraine'`. Languages are now looked up in pycountry by their ISO 639-1
+  code (`uk`) rather than fastcat's id (`ua`, the country code). If your code
+  reads `.alpha_2`, note that it is now `'uk'`, where it used to be `'UA'`.
+  An id pycountry doesn't know gives `None` instead of an `IndexError`
+  ([#30](https://github.com/oskar-j/fastcat/issues/30)).
+- fastcat installs alongside redis-py 8 and pycountry 26. The caps are now
+  `redis<9` and `pycountry<27`. The test suite passes on the lowest
+  versions allowed (redis 5.0.0, pycountry 24.6.1) and the newest (redis
+  8.1.0, pycountry 26.2.16), and the integration tests pass against a real
+  Redis on redis-py 8.1
+  ([#29](https://github.com/oskar-j/fastcat/issues/29)).
+
 ## [0.3.4] - 2026-10-24
 
 ### Fixed
@@ -322,7 +347,8 @@ No library code changed in this release; it is packaging and CI only.
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/oskar-j/fastcat/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/oskar-j/fastcat/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/oskar-j/fastcat/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/oskar-j/fastcat/compare/v0.3.0...v0.3.2
