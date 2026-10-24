@@ -4,6 +4,11 @@ import os
 
 import pytest
 
+import fastcat.lang as languages
+import fastcat.store as store
+from fastcat.interface import FastCat
+from fastcat.utils import supported_language_ids
+
 
 def test_english_owns_slot_zero_on_first_run(isolated_store):
     assert isolated_store.get_slot('en') == 0
@@ -49,3 +54,42 @@ def test_only_language_ids_are_given_a_slot(isolated_store, key):
 
     assert isolated_store.languages == {'en': 0}
     assert not os.path.exists(isolated_store.settings_filename)
+
+
+# --- what each language is reported as (#30) ---------------------------------
+
+NAMES = {'cs': 'Czech', 'de': 'German', 'en': 'English', 'et': 'Estonian', 'ja': 'Japanese',
+         'pl': 'Polish', 'pt': 'Portuguese', 'ru': 'Russian', 'ua': 'Ukrainian'}
+
+
+def test_every_supported_language_has_an_expected_name():
+    assert sorted(NAMES) == supported_language_ids()
+
+
+@pytest.mark.parametrize('language', languages.available_languages.values(), ids=lambda l: l.id)
+def test_every_language_is_reported_as_a_language(language):
+    info = store.language_info(language.id)
+
+    assert info.name == NAMES[language.id]
+    # A language record carries the lower-case ISO 639-1 code; pycountry's
+    # country records (Ukraine is 'UA') do not
+    assert info.alpha_2 == language.wikipedia_mapping
+
+
+def test_ukrainian_is_reported_as_the_language_not_the_country(isolated_store):
+    current = FastCat(language='uk').get_current_language()
+
+    # It used to be pycountry's record for Ukraine, the country: 'Ukraine', 'UA'
+    assert current.name == 'Ukrainian'
+    assert current.alpha_2 == 'uk'
+
+
+def test_ukrainian_is_resolvable_from_its_slot(isolated_store):
+    isolated_store.save_settings('ua')
+
+    assert isolated_store.get_language(slot=1).name == 'Ukrainian'
+
+
+def test_an_unknown_id_has_no_record():
+    # The old country fallback raised IndexError here
+    assert store.language_info('zz') is None

@@ -51,14 +51,24 @@ def _get_next_slot():
 
 
 def language_info(key):
-    """pycountry's record for a fastcat language id."""
-    # normally this line below should work fine
-    result = pycountry.languages.get(alpha_2=key)
-    if result is None:
-        # if not, below is last-chance workaround
-        # due to some bugs in pycountry package
-        result = [c for c in list(pycountry.countries) if c.alpha_2.lower() == key.lower()][0]
-    return result
+    """pycountry's language record for a fastcat language id, or None.
+
+    Looked up by the language's ISO 639-1 code, which is its DBpedia code
+    (``wikipedia_mapping``) and not always its fastcat id: Ukrainian is
+    ``ua`` in fastcat, Ukraine's country code, but ``uk`` in ISO 639-1. The
+    lookup by id used to fall back to pycountry's countries for that, and
+    reported Ukraine (#30).
+    """
+    codes = [language.wikipedia_mapping for language in lang.available_languages.values()
+             if language.id == key] + [key]
+
+    for code in codes:
+        result = pycountry.languages.get(alpha_2=code)
+
+        if result is not None:
+            return result
+
+    return None
 
 
 def get_language_id(slot):
