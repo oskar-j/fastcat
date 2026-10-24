@@ -226,6 +226,10 @@ name:
 A database holds one language. fastcat records which one filled it, and
 refuses to load another on top.
 
+`switch_language()` moves an object to another language's database on the same
+server. It keeps the connection settings: the host, port, password, SSL or
+socket of the client it had, your own client's included.
+
 #### Where the data comes from
 
 The `engine` argument selects the download source:
