@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-23
+
+### Added
+
+- `load()` records which language filled a db (`loaded-language`, next to
+  `loaded-engine`) and refuses to load another language on top, with a
+  `RuntimeError` naming both. Previously that load was skipped as "already
+  loaded", leaving the new language's lookups answered from the old one. Data
+  loaded before this release carries no marker and is treated as before.
+- `FastCat.language`: the id of the language the object works in.
+
+### Fixed
+
+- `FastCat(db=client, language='et')` honours the language. It used to be
+  ignored whenever a client was passed, so `load()` looked the client's db
+  number up in the slot store instead: an unassigned db raised
+  `AttributeError: 'NoneType' object has no attribute 'alpha_2'`, and a db the
+  store assigns to another language would have been filled with that
+  language. `get_current_language()` now reports the language given, too
+  ([#23](https://github.com/oskar-j/fastcat/issues/23)).
+- `load()` with no language to go on (your own client, no `language=`, on a db
+  no language is assigned to) raises a `ValueError` saying how to name one.
+
 ## [0.3.2] - 2026-10-23
 
 There is no 0.3.1: that version number was planned for the README refresh,
@@ -269,7 +292,8 @@ No library code changed in this release; it is packaging and CI only.
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/oskar-j/fastcat/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/oskar-j/fastcat/compare/v0.3.0...v0.3.2
 [0.3.0]: https://github.com/oskar-j/fastcat/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/oskar-j/fastcat/compare/v0.2.4...v0.2.5

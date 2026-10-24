@@ -50,16 +50,30 @@ def _get_next_slot():
     return max(languages.values()) + 1
 
 
-def get_language(slot):
+def language_info(key):
+    """pycountry's record for a fastcat language id."""
+    # normally this line below should work fine
+    result = pycountry.languages.get(alpha_2=key)
+    if result is None:
+        # if not, below is last-chance workaround
+        # due to some bugs in pycountry package
+        result = [c for c in list(pycountry.countries) if c.alpha_2.lower() == key.lower()][0]
+    return result
+
+
+def get_language_id(slot):
+    """The fastcat language id a db slot is assigned to, or None."""
     for key, value in languages.items():
         if value == slot:
-            # normally this line below should work fine
-            result = pycountry.languages.get(alpha_2=key)
-            if result is None:
-                # if not, below is last-chance workaround
-                # due to some bugs in pycountry package
-                result = [c for c in list(pycountry.countries) if c.alpha_2.lower() == key.lower()][0]
-            return result
+            return key
+    return None
+
+
+def get_language(slot):
+    key = get_language_id(slot)
+    if key is None:
+        return None
+    return language_info(key)
 
 
 def get_slot(language):

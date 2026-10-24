@@ -211,15 +211,20 @@ The `FASTCAT_REDIS_HOST` and `FASTCAT_REDIS_PORT` environment variables change
 the default instead, which is how the `fastcat` service in `docker-compose.yml`
 finds its Redis.
 
-You can also hand fastcat a client of your own through `db`. It is then used
-as it is, whatever database it points at, so tell `load()` which language to
-put there:
+You can also hand fastcat a client of your own through `db`. It is used as it
+is, whatever database it points at, and that database holds the language you
+name:
 
 ```python
 >>> import redis
->>> f = fastcat.FastCat(db=redis.Redis(db=15))
->>> f.load(language='et')
+>>> f = fastcat.FastCat(db=redis.Redis(db=15), language='et')
+>>> f.load()
+>>> f.get_current_language().name
+'Estonian'
 ```
+
+A database holds one language. fastcat records which one filled it, and
+refuses to load another on top.
 
 #### Where the data comes from
 
@@ -275,8 +280,8 @@ To keep both side by side, give the other one a database of its own:
 
 ```python
 >>> import redis
->>> archive = fastcat.FastCat(db=redis.Redis(db=15))
->>> archive.load(language='et')
+>>> archive = fastcat.FastCat(db=redis.Redis(db=15), language='et')
+>>> archive.load()
 >>> sorted(archive.broader("Tallinn"))
 ['Eesti linnad', 'Hansalinnad', 'Harju maakonna omavalitsused']
 >>> sorted(f.broader("Tallinn"))

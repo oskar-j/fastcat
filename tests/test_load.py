@@ -124,9 +124,10 @@ def test_a_small_batch_flushes_repeatedly(client, dump_path):
 def test_loaded_flags_are_set_only_after_every_write(client, dump_path):
     FastCat(db=client).load(language='en', progress_bar=False, batch_size=2)
 
-    assert client.events[-2:] == [('set', 'loaded-skos'), ('set', 'loaded-engine')]
+    assert client.events[-3:] == [('set', 'loaded-skos'), ('set', 'loaded-engine'),
+                                  ('set', 'loaded-language')]
     assert client.flags['loaded-skos'] == '1'
-    assert all(event[0] == 'execute' for event in client.events[:-2])
+    assert all(event[0] == 'execute' for event in client.events[:-3])
 
 
 def test_the_loading_engine_is_recorded(client, dump_path):
