@@ -234,10 +234,6 @@ class FastCat(FastCatBase):
         options = {'host': DEFAULT_REDIS_HOST, 'port': DEFAULT_REDIS_PORT}
         options.update(kwargs)
 
-        # Remembered so that every later connection (a different language means
-        # a different redis db) reaches the same server
-        self._options = options
-
         # Initialize redis client object
         if db is None:
 
@@ -271,22 +267,44 @@ class FastCat(FastCatBase):
     def switch_language(self, language):
         """Switch language on an existing FastCat object.
 
+        The object moves to the language's own db on the same Redis server,
+        keeping its connection settings (host, port, password, SSL, ...),
+        those of a client passed in as ``db`` included. A language with no
+        db yet is given one and loaded.
+
         Raises:
             ValueError: The language is not recognised.
         """
         language = resolve_language(language)
 
         try:
-
             slot = store.get_slot(language)
-            self.db = redis.Redis(db=slot, **self._options)
-            self.language = language
+            new = False
         except ValueError:
-
             slot = store.save_settings(language)
-            self.db = redis.Redis(db=slot, **self._options)
-            self.language = language
+            new = True
+
+        self.db = self._client_on(slot)
+        self.language = language
+
+        if new:
             self.load(language)
+
+    def _client_on(self, slot):
+        """A client on db ``slot`` of the server this object is connected to.
+
+        Built from the current client's connection pool, so whatever that was
+        set up with (host, port, password, SSL, a unix socket, timeouts)
+        carries over. It used to be rebuilt from the constructor's keyword
+        arguments, which a client passed in as ``db`` leaves empty, so it
+        reconnected to localhost:6379 (#28).
+        """
+        pool = self.db.connection_pool
+
+        return redis.Redis(connection_pool=redis.ConnectionPool(
+            connection_class=pool.connection_class,
+            max_connections=pool.max_connections,
+            **dict(pool.connection_kwargs, db=slot)))
 
     def get_current_language(self):
         """Get current language, as a pycountry record, or None if unknown.
