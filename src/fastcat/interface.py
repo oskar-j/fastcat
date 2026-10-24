@@ -5,6 +5,8 @@ import sys
 import re
 import bz2
 import hashlib
+import http.client
+import uuid
 from fastcat.utils import (normalize_language, print_progress_bar, get_wikipedia_mapping,
                            resolve_language)
 from urllib import error, request, parse
@@ -48,6 +50,15 @@ DEFAULT_REDIS_PORT = int(os.environ.get('FASTCAT_REDIS_PORT', 6379))
 #: triple costs two full round-trips, which dominates the load time.
 DEFAULT_BATCH_SIZE = 10000
 
+#: Seconds a download may go without receiving anything before it is given up.
+DOWNLOAD_TIMEOUT = 60
+
+DOWNLOAD_CHUNK_SIZE = 1024 * 1024
+
+
+class DamagedDumpError(RuntimeError):
+    """A cached dump turned out to be incomplete or corrupt while loading."""
+
 ntriple_pattern = re.compile(r'^<(.+)> <(.+)> <(.+)> \.\n$')
 ntriple_pattern_wide = re.compile(r'^<(.+)> <(.+)> <(.+)> <(.+)> \.\n$')
 
@@ -65,37 +76,76 @@ class FastCatBase(object):
         skos_file = skos_file_for(normalized_language, engine)
 
         if verbose:
-            print('-- request.urlretrieve for file {}'.format(skos_file))
+            print('-- downloading {} to {}'.format(source.url, skos_file))
+
+        # The dump only takes its real name once it is complete and verified.
+        # load() uses any file of that name as it is, so a partial download
+        # left there would fail every later load (#27). The random part keeps
+        # two processes downloading the same dump out of each other's way.
+        partial = '{}.{}.part'.format(skos_file, uuid.uuid4().hex[:12])
 
         try:
-            request.urlretrieve(source.url, filename=skos_file)
-        except error.HTTPError as http_error:
-            # Leaving a truncated file behind would make the next load() skip
-            # the download and fail while parsing instead.
-            self._discard(skos_file)
+            with open(partial, 'xb') as target:
+                received, expected = self._fetch(source.url, target)
 
+            if expected is not None and received != expected:
+                raise RuntimeError(
+                    'The download of the {!r} dump from {} ended early: got '
+                    '{} of {} bytes. Nothing was cached; run load() again to '
+                    'retry.'.format(normalized_language, source.url, received, expected))
+
+            # The Databus publishes a checksum per file; the wiki archive does not.
+            if source.sha256:
+                digest = self._sha256(partial)
+
+                if digest != source.sha256:
+                    raise RuntimeError(
+                        'Checksum mismatch for the {!r} dump downloaded from {}: '
+                        'expected {}, got {}. The file has been discarded.'.format(
+                            normalized_language, source.url, source.sha256, digest))
+
+                if verbose:
+                    print('Checksum verified ({})'.format(digest[:16]))
+
+            os.replace(partial, skos_file)
+
+        except error.HTTPError as http_error:
             raise RuntimeError(
                 'Could not download the SKOS dump for language {!r} from {} '
                 '({}). The {!r} engine may no longer serve this file.'.format(
                     normalized_language, source.url, http_error, engine)) from http_error
 
-        # The Databus publishes a checksum per file; the wiki archive does not.
-        if source.sha256:
-            digest = self._sha256(skos_file)
+        except (OSError, http.client.HTTPException) as interrupted:
+            # A refused or dropped connection, a timeout, a full disk
+            raise RuntimeError(
+                'The download of the {!r} dump from {} was interrupted ({!r}). '
+                'Nothing was cached; run load() again to retry.'.format(
+                    normalized_language, source.url, interrupted)) from interrupted
 
-            if digest != source.sha256:
-                self._discard(skos_file)
-
-                raise RuntimeError(
-                    'Checksum mismatch for the {!r} dump downloaded from {}: '
-                    'expected {}, got {}. The file has been discarded.'.format(
-                        normalized_language, source.url, source.sha256, digest))
-
-            if verbose:
-                print('Checksum verified ({})'.format(digest[:16]))
+        finally:
+            # Whatever went wrong, KeyboardInterrupt included
+            self._discard(partial)
 
         if verbose:
             print("Finished downloading {} file".format(skos_file))
+
+    @staticmethod
+    def _fetch(url, target):
+        """Stream ``url`` into the open file ``target``.
+
+        Returns:
+            tuple: Bytes received, and bytes announced (None if unannounced).
+        """
+        with request.urlopen(url, timeout=DOWNLOAD_TIMEOUT) as response:
+            announced = response.headers.get('Content-Length')
+            expected = int(announced) if announced and announced.isdigit() else None
+            received = 0
+
+            for chunk in iter(lambda: response.read(DOWNLOAD_CHUNK_SIZE), b''):
+                target.write(chunk)
+                received += len(chunk)
+
+        return received, expected
 
     @staticmethod
     def _discard(path):
@@ -345,7 +395,11 @@ class FastCat(FastCatBase):
             ValueError: ``batch_size`` is smaller than 1, or the language is
                 not recognised or cannot be worked out.
             RuntimeError: The db already holds another language, or the same
-                language from another engine.
+                language from another engine. Also raised when the download
+                fails or is interrupted, and when the cached dump turns out
+                to be damaged (:class:`DamagedDumpError`). Nothing broken is
+                left in the cache, so calling ``load()`` again downloads the
+                dump afresh.
         """
         if batch_size < 1:
             raise ValueError(
@@ -417,6 +471,26 @@ class FastCat(FastCatBase):
         if verbose:
             print('Starting process of adding DBpedia data to Redis instance')
 
+        try:
+            self._insert(skos_file, language, verbose, progress_bar, batch_size)
+        except DamagedDumpError:
+            # Only now that the file is closed (Windows cannot delete an open
+            # file), so the next load() downloads the dump afresh
+            self._discard(skos_file)
+            raise
+
+        # Only once every triple is in, so an interrupted load is not mistaken
+        # for a complete one
+        self.db.set("loaded-skos", "1")
+        self.db.set("loaded-engine", engine)
+        self.db.set("loaded-language", language)
+
+    def _insert(self, skos_file, language, verbose, progress_bar, batch_size):
+        """Stream a dump's broader relations into Redis as b:/n: pairs.
+
+        Raises:
+            DamagedDumpError: The dump turned out to be truncated or corrupt.
+        """
         # Buffer the writes: one SADD per triple means a round-trip to Redis
         # per triple, and there are millions of them.
         pipe = self.db.pipeline(transaction=False)
@@ -431,7 +505,7 @@ class FastCat(FastCatBase):
 
         with open(skos_file, 'rb') as raw, bz2.BZ2File(raw) as uncompressed:
 
-            for line in uncompressed:
+            for line in self._lines(uncompressed, skos_file):
 
                 if progress_bar:
                     # Redrawing on every line puts terminal I/O on the hot
@@ -504,8 +578,17 @@ class FastCat(FastCatBase):
             print_progress_bar(total_bytes, total_bytes, prefix='Progress:',
                                suffix='Complete', length=50)
 
-        # Only once every triple is in, so an interrupted load is not mistaken
-        # for a complete one
-        self.db.set("loaded-skos", "1")
-        self.db.set("loaded-engine", engine)
-        self.db.set("loaded-language", language)
+    @staticmethod
+    def _lines(uncompressed, skos_file):
+        """The lines of an open dump, reporting a damaged one as such.
+
+        A dump cut short (as 0.3.3 and earlier could leave behind, #27) only
+        shows up once decompression reaches the end of it.
+        """
+        try:
+            yield from uncompressed
+        except (EOFError, OSError) as damaged:
+            raise DamagedDumpError(
+                'The cached dump {} is incomplete or damaged ({}), so it has '
+                'been deleted. Run load() again to download it afresh.'.format(
+                    skos_file, damaged)) from damaged
