@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-10-24
+
+### Fixed
+
+- The `databus` engine works again. The Databus has been cutting its release
+  metadata short (about 65 KB of 384 KB), so no dump could be found for any
+  language, and the error escaped as a bare `http.client.IncompleteRead`.
+  fastcat now looks each dump up through the Databus SPARQL endpoint, which
+  answers in a few hundred bytes. It falls back to the release metadata only
+  if that fails, and a response cut short is retried like any other network
+  error ([#26](https://github.com/oskar-j/fastcat/issues/26)).
+- An interrupted download no longer breaks every later `load()`.
+  - **Before:** Ctrl-C, a dropped connection or a stalled transfer left a
+    partial dump in the cache, which `load()` then trusted for good.
+  - **Now:** downloads go to a temporary file, which takes the dump's name
+    only once it is complete and, for the Databus, matches its checksum. A
+    download that receives nothing for 60 seconds is given up, and a failed
+    one leaves nothing in the cache.
+  - **Already damaged:** a damaged dump left in the cache by an earlier
+    version is deleted when `load()` reaches the damage, with a
+    `DamagedDumpError` (a `RuntimeError`), so the next `load()` downloads it
+    again ([#27](https://github.com/oskar-j/fastcat/issues/27)).
+
+### Added
+
+- `fastcat.engines.databus_sparql_source()` looks a dump up through the
+  Databus SPARQL endpoint.
+- `fastcat.interface.DamagedDumpError`, and `DOWNLOAD_TIMEOUT` (seconds
+  without data before a download is given up, default 60).
+
 ## [0.3.3] - 2026-10-23
 
 ### Added
@@ -292,7 +322,8 @@ No library code changed in this release; it is packaging and CI only.
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/oskar-j/fastcat/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/oskar-j/fastcat/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/oskar-j/fastcat/compare/v0.3.0...v0.3.2
 [0.3.0]: https://github.com/oskar-j/fastcat/compare/v0.2.5...v0.3.0
