@@ -248,10 +248,11 @@ For up-to-date categories, ask for the Databus:
 >>> f.load()
 ```
 
-The Databus has no fixed download URLs, so fastcat resolves the newest version
-of the `generic/categories` artifact and picks the SKOS part for your language.
-It also publishes a sha256 per file, which fastcat checks after downloading; a
-mismatch discards the file rather than loading it.
+The Databus has no fixed download URLs. fastcat resolves the newest version of
+the `generic/categories` artifact, then asks the Databus SPARQL endpoint for the
+SKOS part for your language, with the release's metadata page as a fallback. The
+Databus also publishes a sha256 per file, which fastcat checks after
+downloading; a mismatch discards the file rather than loading it.
 
 ##### The two engines are not interchangeable
 
@@ -330,6 +331,12 @@ Downloaded dumps are cached inside the installed package, as
 `fastcat/data/skos-<engine>-<language>.nt.bz2`, and the language → Redis db
 mapping is pickled next to them in `fastcat/settings/`. Delete a dump to force
 a fresh download.
+
+A download only takes that name once it is complete, so an interrupted one
+(Ctrl-C, a dropped connection, 60 seconds without data) leaves nothing behind,
+and the next `load()` starts it again. If a cached dump turns out to be damaged
+while loading, fastcat deletes it and raises `DamagedDumpError`, a
+`RuntimeError`; run `load()` again to download it afresh.
 
 Development
 -----------

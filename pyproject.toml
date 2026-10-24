@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fastcat"
-version = "0.3.3"
+version = "0.3.4"
 description = "Wikipedia's category graph in your own Redis: load a DBpedia dump once, then look up broader and narrower categories locally, without the Wikipedia API."
 readme = "README.md"
 requires-python = ">=3.10"
