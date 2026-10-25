@@ -9,6 +9,8 @@ milliseconds.
 import pytest
 
 import fastcat
+import fastcat.interface as interface
+import fastcat.paths as paths
 
 
 def pytest_addoption(parser):
@@ -50,17 +52,34 @@ def loaded_fastcat():
     return _for_language
 
 
-@pytest.fixture
-def isolated_store(tmp_path, monkeypatch):
-    """Point the language/slot store at a throwaway pickle file.
+@pytest.fixture(autouse=True)
+def isolated_files(request, monkeypatch):
+    """Keep unit tests away from the real data and package directories.
 
-    ``store`` keeps its mapping in a module-level global backed by a pickle
-    inside the package directory; without this the unit tests would clobber the
-    developer's real slot assignments.
+    Each unit test gets tmp_path as its data directory, and an empty
+    stand-in for the package directory, where fastcat 0.3.5 and earlier
+    kept their files. Nothing then reads the developer's dumps and mapping,
+    or moves them. Integration tests use the real directories, so the dumps
+    they download are cached across runs.
+    """
+    if request.node.get_closest_marker('integration'):
+        return
+
+    tmp_path = request.getfixturevalue('tmp_path')
+    monkeypatch.setenv(paths.DATA_DIR_VARIABLE, str(tmp_path))
+    monkeypatch.setattr(paths, 'LEGACY_DIR', str(tmp_path / 'legacy-package'))
+    monkeypatch.setattr(interface, '_legacy_dumps_checked', False)
+
+
+@pytest.fixture
+def isolated_store(isolated_files, monkeypatch):
+    """Start the language/slot store afresh, saved in the test's tmp_path.
+
+    ``store`` keeps its mapping in a module-level global, so without this
+    one test's slot assignments would leak into the next.
     """
     import fastcat.store as store
 
-    monkeypatch.setattr(store, 'settings_filename', str(tmp_path / 'redis_ids.pickle'))
     monkeypatch.setattr(store, 'languages', {})
     store.load_settings()
     return store

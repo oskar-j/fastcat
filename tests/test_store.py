@@ -53,7 +53,7 @@ def test_only_language_ids_are_given_a_slot(isolated_store, key):
         isolated_store.save_settings(key)
 
     assert isolated_store.languages == {'en': 0}
-    assert not os.path.exists(isolated_store.settings_filename)
+    assert not os.path.exists(isolated_store.settings_file())
 
 
 # --- what each language is reported as (#30) ---------------------------------

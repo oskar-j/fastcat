@@ -1,44 +1,105 @@
 #!/usr/bin/env python
 
 import os
-import sys
 import re
 import bz2
 import hashlib
 import http.client
-import uuid
+import warnings
 from fastcat.utils import (normalize_language, print_progress_bar, get_wikipedia_mapping,
-                           resolve_language)
+                           resolve_language, supported_language_ids)
 from urllib import error, request, parse
 import redis
+import fastcat.paths as paths
 import fastcat.store as store
 import fastcat.lang as languages
 import fastcat.engines as engines
 from fastcat.engines import DEFAULT_ENGINE, skos_source, validate_engine
 
 
-try:
-    p = __file__
-except NameError:
-    p = sys.argv[0]
-
-
-data_location = os.path.join(os.path.dirname(os.path.realpath(p)), 'data')
-if not os.path.isdir(data_location):
-    os.makedirs(data_location)
-settings_location = os.path.join(os.path.dirname(os.path.realpath(p)), 'settings')
-if not os.path.isdir(settings_location):
-    os.makedirs(settings_location)
-
-# The engine is part of the name so dumps of the same language from different
-# sources cannot overwrite each other.
-skos_file_pattern = os.path.join(
-    os.path.dirname(os.path.realpath(p)), 'data', 'skos-%engine%-%lang%.nt.bz2')
-
-
 def skos_file_for(language, engine=DEFAULT_ENGINE):
     """Local path fastcat caches a language's dump at."""
-    return skos_file_pattern.replace('%lang%', language).replace('%engine%', engine)
+    return os.path.join(paths.data_dir(), _skos_name(language, engine))
+
+
+def _skos_name(language, engine):
+    # The engine is part of the name so dumps of the same language from
+    # different sources cannot overwrite each other.
+    return 'skos-{}-{}.nt.bz2'.format(engine, language)
+
+
+# Up to 0.3.5 dumps were cached in data/ inside the package. FastCat() moves
+# them to the data directory, once per process.
+_legacy_dumps_checked = False
+
+
+def _adopt_legacy_dumps_once():
+    global _legacy_dumps_checked
+
+    if not _legacy_dumps_checked:
+        _legacy_dumps_checked = True
+        _adopt_legacy_dumps()
+
+        # The old directories go too, unless something is left in them (or
+        # the package is read-only)
+        paths.remove_quietly(os.path.join(paths.LEGACY_DIR, 'data'))
+        paths.remove_quietly(os.path.join(paths.LEGACY_DIR, 'settings'))
+
+
+def _adopt_legacy_dumps():
+    """Move the dumps fastcat 0.3.5 and earlier cached inside the package.
+
+    Each goes to the data directory, unless one of the same name is there
+    already, in which case the old one is just removed. On another
+    filesystem they are copied instead, and the originals left in place:
+    that may be a volume that outlasts the data directory, as with
+    docker-compose.yml up to 0.3.5. Other files are left alone.
+    """
+    legacy = os.path.join(paths.LEGACY_DIR, 'data')
+
+    try:
+        present = set(os.listdir(legacy))
+    except OSError:
+        return
+
+    found = sorted(present & {_skos_name(language, engine)
+                              for engine in engines.available_engines
+                              for language in supported_language_ids()})
+
+    if not found:
+        return
+
+    try:
+        target = paths.ensure_data_dir()
+    except RuntimeError as exc:
+        warnings.warn('{} The dumps that an earlier fastcat cached in {} are '
+                      'left there.'.format(exc, legacy), RuntimeWarning, stacklevel=4)
+        return
+
+    moving = paths.same_filesystem(legacy, target)
+    to_move = [name for name in found if not os.path.exists(os.path.join(target, name))]
+
+    if to_move and moving:
+        print('Moving {} cached dump(s) from {} to {}'.format(len(to_move), legacy, target))
+    elif to_move:
+        print('Copying {} cached dump(s) from {} to {}. {}'.format(
+            len(to_move), legacy, target, paths.kept_on_another_filesystem()))
+
+    for name in found:
+        source = os.path.join(legacy, name)
+
+        if name not in to_move:
+            if moving:
+                paths.remove_quietly(source)
+            continue
+
+        try:
+            (paths.move if moving else paths.copy)(source, os.path.join(target, name))
+        except OSError as exc:
+            warnings.warn('Could not move {} to {} ({}). It will be downloaded '
+                          'again when needed.'.format(source, target, exc),
+                          RuntimeWarning, stacklevel=4)
+
 
 # Where to look for Redis unless the caller says otherwise. The environment
 # variables make a containerised Redis (see docker-compose.yml) usable without
@@ -78,14 +139,21 @@ class FastCatBase(object):
         if verbose:
             print('-- downloading {} to {}'.format(source.url, skos_file))
 
+        # Only now, so nothing is written until there is something to write
+        paths.ensure_data_dir()
+
         # The dump only takes its real name once it is complete and verified.
         # load() uses any file of that name as it is, so a partial download
-        # left there would fail every later load (#27). The random part keeps
-        # two processes downloading the same dump out of each other's way.
-        partial = '{}.{}.part'.format(skos_file, uuid.uuid4().hex[:12])
+        # left there would fail every later load (#27).
+        partial = paths.partial_name(skos_file)
 
         try:
-            with open(partial, 'xb') as target:
+            target = open(partial, 'xb')
+        except OSError as exc:
+            raise paths.unwritable(os.path.dirname(skos_file), exc) from exc
+
+        try:
+            with target:
                 received, expected = self._fetch(source.url, target)
 
             if expected is not None and received != expected:
@@ -149,8 +217,7 @@ class FastCatBase(object):
 
     @staticmethod
     def _discard(path):
-        if os.path.isfile(path):
-            os.remove(path)
+        paths.discard(path)
 
     @staticmethod
     def _sha256(path, chunk_size=1024 * 1024):
@@ -213,6 +280,9 @@ class FastCat(FastCatBase):
 
         Raises:
             ValueError: The engine name or the language is not recognised.
+            RuntimeError: The language has no db yet, and the mapping that
+                gives it one cannot be saved, because fastcat's data
+                directory (:meth:`get_data_dir`) is not writable.
 
         """
 
@@ -229,6 +299,7 @@ class FastCat(FastCatBase):
 
         # Load most recent language-redis mapping
         store.load_settings()
+        _adopt_legacy_dumps_once()
 
         # Anything not set here is left at the redis client's own default
         options = {'host': DEFAULT_REDIS_HOST, 'port': DEFAULT_REDIS_PORT}
@@ -331,6 +402,19 @@ class FastCat(FastCatBase):
     def get_supported_languages():
         """Get list of supported languages."""
         return languages.available_languages.keys()
+
+    @staticmethod
+    def get_data_dir():
+        """Get the directory fastcat keeps its downloaded dumps and its
+        language -> Redis db mapping in.
+
+        That is the ``FASTCAT_DATA_DIR`` environment variable if it is set,
+        and otherwise the user's cache directory: ``~/.cache/fastcat`` on
+        Linux, ``~/Library/Caches/fastcat`` on macOS and
+        ``%LOCALAPPDATA%\\fastcat\\Cache`` on Windows. It is created on first
+        use.
+        """
+        return paths.data_dir()
 
     @staticmethod
     def get_supported_engines():
