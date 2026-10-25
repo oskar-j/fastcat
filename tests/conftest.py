@@ -59,8 +59,8 @@ def isolated_files(request, monkeypatch):
     Each unit test gets tmp_path as its data directory, and an empty
     stand-in for the package directory, where fastcat 0.3.5 and earlier
     kept their files. Nothing then reads the developer's dumps and mapping,
-    or moves them. Integration tests use the real directories, so the dumps
-    they download are cached across runs.
+    or warns about old ones. Integration tests use the real directories, so
+    the dumps they download are cached across runs.
     """
     if request.node.get_closest_marker('integration'):
         return
@@ -68,7 +68,7 @@ def isolated_files(request, monkeypatch):
     tmp_path = request.getfixturevalue('tmp_path')
     monkeypatch.setenv(paths.DATA_DIR_VARIABLE, str(tmp_path))
     monkeypatch.setattr(paths, 'LEGACY_DIR', str(tmp_path / 'legacy-package'))
-    monkeypatch.setattr(interface, '_legacy_dumps_checked', False)
+    monkeypatch.setattr(interface, '_legacy_files_checked', False)
 
 
 @pytest.fixture

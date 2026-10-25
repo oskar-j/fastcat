@@ -6,9 +6,13 @@ content variant) is covered without network access. The integration tests hit
 the real Databus.
 """
 
+import gc
 import http.client
+import http.server
 import json
 import re
+import threading
+import warnings
 from urllib import parse
 
 import pytest
@@ -480,3 +484,101 @@ def test_loading_a_language_from_the_real_databus():
             categories.load(language='et', engine=WIKI_ARCHIVE, progress_bar=False)
     finally:
         client.flushdb()
+
+
+# --- HTTP errors from a real server (#44) -------------------------------------
+
+class MetadataServer:
+    """Answers each request with the next status in ``statuses``."""
+
+    def __init__(self, statuses):
+        statuses = list(statuses)
+        self.requests = 0
+        owner = self
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                owner.requests += 1
+                status = statuses.pop(0) if statuses else 200
+
+                if status != 200:
+                    self.send_error(status)
+                    return
+
+                body = b'{"ok": true}'
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/ld+json')
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *args):
+                pass
+
+        self.httpd = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        self.url = 'http://127.0.0.1:{}/metadata'.format(self.httpd.server_port)
+        threading.Thread(target=self.httpd.serve_forever, kwargs={'poll_interval': 0.01},
+                         daemon=True).start()
+
+    def close(self):
+        self.httpd.shutdown()
+        self.httpd.server_close()
+
+
+@pytest.fixture
+def metadata_server(monkeypatch):
+    servers = []
+    monkeypatch.setattr(engines, 'DATABUS_RETRY_WAIT', 0)
+
+    def start(*statuses):
+        servers.append(MetadataServer(statuses))
+        return servers[-1]
+
+    yield start
+
+    for server in servers:
+        server.close()
+
+
+def _fetch_failing(url):
+    """Fetch ``url``, expecting it to fail, with no resource left behind."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+
+        with pytest.raises(EngineError) as raised:
+            engines._fetch_json(url)
+
+        gc.collect()
+
+    assert [w for w in caught if issubclass(w.category, ResourceWarning)] == []
+    return raised.value
+
+
+def test_a_server_error_is_retried_and_every_response_closed(metadata_server):
+    server = metadata_server(500, 500, 500)
+
+    failure = _fetch_failing(server.url)
+
+    assert server.requests == 3
+    assert 'after 3 attempts' in str(failure)
+    assert failure.__cause__.code == 500
+    assert failure.__cause__.closed
+
+
+def test_a_client_error_fails_straight_away(metadata_server):
+    # It would come back the same, so retrying only waits (#44)
+    server = metadata_server(404)
+
+    failure = _fetch_failing(server.url)
+
+    assert server.requests == 1
+    assert 'after 1 attempt ' in str(failure)
+    assert failure.__cause__.closed
+
+
+@pytest.mark.parametrize('status', [408, 429, 503])
+def test_a_passing_error_is_retried_until_it_works(metadata_server, status):
+    server = metadata_server(status)
+
+    assert engines._fetch_json(server.url) == {'ok': True}
+    assert server.requests == 2

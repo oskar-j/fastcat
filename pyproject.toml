@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fastcat"
-version = "0.3.6"
+version = "0.4.0"
 description = "Wikipedia's category graph in your own Redis: load a DBpedia dump once, then look up broader and narrower categories locally, without the Wikipedia API."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -60,4 +60,11 @@ testpaths = ["tests"]
 addopts = "-ra --strict-markers"
 markers = [
     "integration: needs a reachable Redis server and downloads a SKOS dump from DBpedia",
+]
+# A file or connection left open fails the test that leaves it (#44). Python
+# reports one closed by garbage collection through pytest's unraisable
+# exception hook, hence the second filter.
+filterwarnings = [
+    "error::ResourceWarning",
+    "error::pytest.PytestUnraisableExceptionWarning",
 ]

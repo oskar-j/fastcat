@@ -12,6 +12,7 @@ import http.server
 import os
 import threading
 import time
+import urllib.error
 from types import SimpleNamespace
 
 import pytest
@@ -211,6 +212,17 @@ def test_a_missing_dump_is_reported_and_nothing_cached(server, tmp_path):
         _load()
 
     assert os.listdir(tmp_path) == []
+
+
+def test_a_missing_dump_leaves_no_connection_open(server):
+    # The HTTPError holds the response, and with it the connection (#44)
+    server.mode = 'missing'
+
+    with pytest.raises(RuntimeError) as raised:
+        _load()
+
+    assert isinstance(raised.value.__cause__, urllib.error.HTTPError)
+    assert raised.value.__cause__.closed
 
 
 @pytest.mark.skipif(os.name == 'nt', reason='POSIX permission bits')

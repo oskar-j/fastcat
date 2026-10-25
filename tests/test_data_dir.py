@@ -4,22 +4,19 @@ Up to 0.3.5 the dumps and the language -> db mapping lived inside the
 installed package, and ``import fastcat`` created the directories for them,
 so a read-only install could not even be imported. They now go to the
 user's cache directory (or ``FASTCAT_DATA_DIR``), created when the first
-file is written, and ``FastCat()`` moves the files an earlier version left
-in the package.
+file is written. 0.3.6 moved the files an earlier version left in the
+package; since 0.4.0 ``FastCat()`` only warns about them.
 
 conftest points the data directory at tmp_path, and the package directory
 at an empty tmp_path/legacy-package, for every test.
 """
 
-import bz2
-import errno
 import os
 import pickle
 import shutil
 import subprocess
 import sys
 import warnings
-from types import SimpleNamespace
 
 import pytest
 
@@ -34,30 +31,6 @@ DUMP_NAMES = ['skos-wiki-archive-de.nt.bz2', 'skos-databus-et.nt.bz2']
 
 def _db_index(f):
     return f.db.connection_pool.connection_kwargs.get('db', 0)
-
-
-class FakeRedis:
-    """Just enough of a client on db 15 for FastCat to load into."""
-
-    def __init__(self):
-        self.connection_pool = SimpleNamespace(connection_kwargs={'db': 15})
-        self.flags = {}
-        self.sets = {}
-
-    def get(self, key):
-        return self.flags.get(key)
-
-    def set(self, key, value):
-        self.flags[key] = value
-
-    def pipeline(self, transaction=True):
-        return self
-
-    def sadd(self, key, value):
-        self.sets.setdefault(key, set()).add(value)
-
-    def execute(self):
-        return []
 
 
 # --- where the directory is ---------------------------------------------------
@@ -202,7 +175,9 @@ def test_an_unwritable_directory_is_reported_and_no_db_is_given_out(isolated_sto
     assert _db_index(FastCat()) == 0
 
 
-# --- moving the files fastcat 0.3.5 and earlier left in the package -------------
+# --- files fastcat 0.3.5 and earlier left in the package -----------------------
+#
+# 0.3.6 moved them to the data directory. 0.4.0 doesn't, but says what it found.
 
 @pytest.fixture
 def legacy(tmp_path, monkeypatch):
@@ -219,185 +194,80 @@ def _old_mapping(legacy, mapping):
     (legacy / 'settings' / 'redis_ids.pickle').write_bytes(pickle.dumps(mapping))
 
 
-def _new_mapping(tmp_path, mapping=None):
-    path = tmp_path / 'cache' / 'redis_ids.pickle'
-
-    if mapping is not None:
-        path.parent.mkdir(exist_ok=True)
-        path.write_bytes(pickle.dumps(mapping))
-
-    return pickle.loads(path.read_bytes()) if path.exists() else None
-
-
 def _old_dumps(legacy):
     for name in DUMP_NAMES:
         (legacy / 'data' / name).write_bytes(b'old ' + name.encode())
 
 
-def test_the_old_mapping_is_moved(isolated_store, legacy, tmp_path, capsys):
-    _old_mapping(legacy, {'en': 0, 'de': 1, 'pl': 2})
-
-    f = FastCat(language='pl')
-
-    assert _db_index(f) == 2
-    assert _new_mapping(tmp_path) == {'en': 0, 'de': 1, 'pl': 2}
-    assert not (legacy / 'settings').exists()
-    assert 'Moved the language -> Redis db mapping' in capsys.readouterr().out
+def _snapshot(*roots):
+    return {str(root): _listing(root) for root in roots if root.exists()}
 
 
-def test_the_old_dumps_are_moved_and_other_files_left_alone(isolated_store, legacy, tmp_path):
+def test_an_old_mapping_is_reported_and_neither_used_nor_moved(isolated_store, legacy, tmp_path):
+    _old_mapping(legacy, {'en': 0, 'et': 1, 'pl': 2})
     _old_dumps(legacy)
-    (legacy / 'data' / 'notes.txt').write_text('mine')
-
-    FastCat()
-
-    for name in DUMP_NAMES:
-        assert (tmp_path / 'cache' / name).read_bytes() == b'old ' + name.encode()
-    assert os.listdir(legacy / 'data') == ['notes.txt']
-
-
-def test_a_moved_dump_is_loaded_without_downloading_it(isolated_store, legacy, monkeypatch):
-    (legacy / 'data' / 'skos-wiki-archive-et.nt.bz2').write_bytes(bz2.compress(
-        b'<http://et.dbpedia.org/resource/Kategooria:Tallinn> '
-        b'<http://www.w3.org/2004/02/skos/core#broader> '
-        b'<http://et.dbpedia.org/resource/Kategooria:Eesti_linnad> .\n'))
-    monkeypatch.setattr(FastCat, '_download', lambda *args: pytest.fail('downloaded'))
-    client = FakeRedis()
-    FastCat(db=client, language='et').load(progress_bar=False)
-
-    assert client.sets['b:Tallinn'] == {'Eesti linnad'}
-    assert not (legacy / 'data').exists()
-
-
-def test_a_dump_already_in_the_data_directory_wins(isolated_store, legacy, tmp_path, capsys):
-    _old_dumps(legacy)
-    (tmp_path / 'cache').mkdir()
-    for name in DUMP_NAMES:
-        (tmp_path / 'cache' / name).write_bytes(b'new')
-
-    FastCat()
-
-    for name in DUMP_NAMES:
-        assert (tmp_path / 'cache' / name).read_bytes() == b'new'
-    assert not (legacy / 'data').exists()
-    assert 'Moving' not in capsys.readouterr().out
-
-
-@pytest.mark.parametrize('old, new, merged', [
-    ({'en': 0, 'de': 1}, {'en': 0, 'de': 1, 'pl': 2}, {'en': 0, 'de': 1, 'pl': 2}),
-    ({'en': 0, 'ru': 3}, {'en': 0, 'de': 1}, {'en': 0, 'de': 1, 'ru': 3}),
-], ids=['already-there', 'merged'])
-def test_two_mappings_that_agree_are_merged(isolated_store, legacy, tmp_path, old, new, merged):
-    _old_mapping(legacy, old)
-    _new_mapping(tmp_path, new)
-
-    with warnings.catch_warnings():
-        warnings.simplefilter('error')
-        FastCat()
-
-    assert isolated_store.languages == merged
-    assert _new_mapping(tmp_path) == merged
-    assert not (legacy / 'settings').exists()
-
-
-@pytest.mark.parametrize('old', [{'en': 0, 'pl': 1}, {'en': 0, 'de': 2}],
-                         ids=['one-db-two-languages', 'one-language-two-dbs'])
-def test_two_mappings_that_disagree_are_reported(isolated_store, legacy, tmp_path, old):
-    _old_mapping(legacy, old)
-    _new_mapping(tmp_path, {'en': 0, 'de': 1})
-
-    with pytest.warns(RuntimeWarning, match='mappings that disagree.*en db 0, de db 1'):
-        f = FastCat(language='de')
-
-    # The data directory's mapping is used, and nothing is lost
-    assert _db_index(f) == 1
-    assert _new_mapping(tmp_path) == {'en': 0, 'de': 1}
-    assert (legacy / 'settings' / 'redis_ids.pickle').exists()
-
-
-def test_if_nothing_can_be_moved_the_old_mapping_is_still_used(isolated_store, legacy, tmp_path,
-                                                               monkeypatch):
-    _old_mapping(legacy, {'en': 0, 'pl': 1})
-    _old_dumps(legacy)
-    (tmp_path / 'a-file').write_text('')
-    monkeypatch.setenv(paths.DATA_DIR_VARIABLE, str(tmp_path / 'a-file' / 'fastcat'))
+    before = _snapshot(legacy)
 
     with pytest.warns(RuntimeWarning) as caught:
         f = FastCat(language='pl')
 
+    message = str(caught[0].message)
+    assert str(legacy) in message
+    for name in ['settings/redis_ids.pickle'] + ['data/' + name for name in DUMP_NAMES]:
+        assert os.path.join(*name.split('/')) in message
+    assert str(tmp_path / 'cache') in message
+    assert 'fastcat 0.3.6' in message
+    assert 'mapping in there is ignored' in message
+
+    # A fresh mapping, so Polish gets the next db rather than its old one
     assert _db_index(f) == 1
-    assert [str(w.message) for w in caught if 'mapping' in str(w.message)]
-    assert [str(w.message) for w in caught if 'dumps' in str(w.message)]
-    assert (legacy / 'settings' / 'redis_ids.pickle').exists()
-    assert sorted(os.listdir(legacy / 'data')) == sorted(DUMP_NAMES)
+    assert _snapshot(legacy) == before
+    assert sorted(os.listdir(tmp_path / 'cache')) == ['redis_ids.pickle']
 
 
-def _next_process(monkeypatch):
-    monkeypatch.setattr(interface, '_legacy_dumps_checked', False)
-
-
-def test_on_another_filesystem_files_are_copied_and_the_originals_kept(
-        isolated_store, legacy, tmp_path, monkeypatch, capsys):
-    # The package directory may be a volume that outlasts the data directory,
-    # as in docker-compose.yml up to 0.3.5: moving would empty it for good
-    monkeypatch.setattr(paths, 'same_filesystem', lambda path, other: False)
-    _old_mapping(legacy, {'en': 0, 'pl': 1})
+def test_old_dumps_alone_are_reported_as_harmless(isolated_store, legacy):
     _old_dumps(legacy)
 
-    FastCat()
+    with pytest.warns(RuntimeWarning, match='downloaded again') as caught:
+        FastCat()
 
-    assert _new_mapping(tmp_path) == {'en': 0, 'pl': 1}
-    for name in DUMP_NAMES:
-        assert (tmp_path / 'cache' / name).read_bytes() == b'old ' + name.encode()
-    assert sorted(os.listdir(legacy / 'data')) == sorted(DUMP_NAMES)
-    assert (legacy / 'settings' / 'redis_ids.pickle').exists()
-    out = capsys.readouterr().out
-    assert 'Copied the language -> Redis db mapping' in out
-    assert 'Copying 2 cached dump(s)' in out
-    assert 'FASTCAT_DATA_DIR' in out
-
-    # Nothing to copy the next time, and nothing to say
-    _next_process(monkeypatch)
-
-    with warnings.catch_warnings():
-        warnings.simplefilter('error')
-        assert _db_index(FastCat(language='pl')) == 1
-
-    assert capsys.readouterr().out == ''
-    assert sorted(os.listdir(legacy / 'data')) == sorted(DUMP_NAMES)
+    assert 'mapping in there is ignored' not in str(caught[0].message)
 
 
-def test_a_read_only_package_directory_is_copied_from_once(isolated_store, legacy, tmp_path,
-                                                           monkeypatch, capsys):
-    rename, remove = os.replace, os.remove
-
-    def no_renaming(source, destination):
-        if str(source).startswith(str(legacy)):
-            raise PermissionError(errno.EACCES, 'Permission denied')
-        return rename(source, destination)
-
-    def no_removing(path):
-        if str(path).startswith(str(legacy)):
-            raise PermissionError(errno.EACCES, 'Permission denied')
-        return remove(path)
-
-    monkeypatch.setattr(os, 'replace', no_renaming)
-    monkeypatch.setattr(os, 'remove', no_removing)
+def test_an_old_mapping_next_to_a_current_one_is_reported_as_harmless(isolated_store, legacy,
+                                                                      tmp_path):
+    # What 0.3.6 left when it copied the files across filesystems
     _old_mapping(legacy, {'en': 0, 'pl': 1})
+    (tmp_path / 'cache').mkdir()
+    (tmp_path / 'cache' / 'redis_ids.pickle').write_bytes(pickle.dumps({'en': 0, 'pl': 1}))
+
+    with pytest.warns(RuntimeWarning, match='delete them') as caught:
+        f = FastCat(language='pl')
+
+    assert 'mapping in there is ignored' not in str(caught[0].message)
+    assert _db_index(f) == 1
+
+
+def test_the_warning_comes_once_per_process(isolated_store, legacy):
     _old_dumps(legacy)
 
-    FastCat()
-
-    assert _new_mapping(tmp_path) == {'en': 0, 'pl': 1}
-    assert sorted(os.listdir(tmp_path / 'cache')) == sorted(DUMP_NAMES + ['redis_ids.pickle'])
-    assert 'Moving 2 cached dump(s)' in capsys.readouterr().out
-
-    # The next process finds the copies, and has nothing to say
-    _next_process(monkeypatch)
+    with pytest.warns(RuntimeWarning):
+        FastCat()
 
     with warnings.catch_warnings():
         warnings.simplefilter('error')
         FastCat()
+        FastCat(language='de')
 
-    assert capsys.readouterr().out == ''
-    assert sorted(os.listdir(legacy / 'data')) == sorted(DUMP_NAMES)
+
+@pytest.mark.parametrize('leftover', ['nothing', 'empty folders', 'other files'])
+def test_nothing_of_fastcats_is_not_reported(isolated_store, legacy, leftover):
+    if leftover == 'nothing':
+        shutil.rmtree(legacy)
+    elif leftover == 'other files':
+        (legacy / 'data' / 'notes.txt').write_text('mine')
+        (legacy / 'data' / 'skos-wiki-archive-en.nt.bz2.0123456789ab.part').write_bytes(b'')
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        FastCat()

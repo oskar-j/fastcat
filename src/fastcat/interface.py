@@ -7,7 +7,7 @@ import hashlib
 import http.client
 import warnings
 from fastcat.utils import (normalize_language, print_progress_bar, get_wikipedia_mapping,
-                           resolve_language, supported_language_ids)
+                           resolve_language)
 from urllib import error, request, parse
 import redis
 import fastcat.paths as paths
@@ -28,77 +28,37 @@ def _skos_name(language, engine):
     return 'skos-{}-{}.nt.bz2'.format(engine, language)
 
 
-# Up to 0.3.5 dumps were cached in data/ inside the package. FastCat() moves
-# them to the data directory, once per process.
-_legacy_dumps_checked = False
+# Up to 0.3.5 the dumps and the mapping lived inside the package. 0.3.6 moved
+# them out (#33); FastCat() now only warns about any left there, once per
+# process.
+_legacy_files_checked = False
 
 
-def _adopt_legacy_dumps_once():
-    global _legacy_dumps_checked
+def _warn_about_legacy_files_once():
+    global _legacy_files_checked
 
-    if not _legacy_dumps_checked:
-        _legacy_dumps_checked = True
-        _adopt_legacy_dumps()
-
-        # The old directories go too, unless something is left in them (or
-        # the package is read-only)
-        paths.remove_quietly(os.path.join(paths.LEGACY_DIR, 'data'))
-        paths.remove_quietly(os.path.join(paths.LEGACY_DIR, 'settings'))
-
-
-def _adopt_legacy_dumps():
-    """Move the dumps fastcat 0.3.5 and earlier cached inside the package.
-
-    Each goes to the data directory, unless one of the same name is there
-    already, in which case the old one is just removed. On another
-    filesystem they are copied instead, and the originals left in place:
-    that may be a volume that outlasts the data directory, as with
-    docker-compose.yml up to 0.3.5. Other files are left alone.
-    """
-    legacy = os.path.join(paths.LEGACY_DIR, 'data')
-
-    try:
-        present = set(os.listdir(legacy))
-    except OSError:
+    if _legacy_files_checked:
         return
 
-    found = sorted(present & {_skos_name(language, engine)
-                              for engine in engines.available_engines
-                              for language in supported_language_ids()})
+    _legacy_files_checked = True
+    found = paths.legacy_files()
 
     if not found:
         return
 
-    try:
-        target = paths.ensure_data_dir()
-    except RuntimeError as exc:
-        warnings.warn('{} The dumps that an earlier fastcat cached in {} are '
-                      'left there.'.format(exc, legacy), RuntimeWarning, stacklevel=4)
-        return
+    if paths.LEGACY_SETTINGS in found and not os.path.exists(store.settings_file()):
+        consequence = ('Until then the language -> Redis db mapping in there is ignored, '
+                       'so a language may be given a db that already holds another one.')
+    else:
+        consequence = 'Otherwise delete them; any dump needed is downloaded again.'
 
-    moving = paths.same_filesystem(legacy, target)
-    to_move = [name for name in found if not os.path.exists(os.path.join(target, name))]
-
-    if to_move and moving:
-        print('Moving {} cached dump(s) from {} to {}'.format(len(to_move), legacy, target))
-    elif to_move:
-        print('Copying {} cached dump(s) from {} to {}. {}'.format(
-            len(to_move), legacy, target, paths.kept_on_another_filesystem()))
-
-    for name in found:
-        source = os.path.join(legacy, name)
-
-        if name not in to_move:
-            if moving:
-                paths.remove_quietly(source)
-            continue
-
-        try:
-            (paths.move if moving else paths.copy)(source, os.path.join(target, name))
-        except OSError as exc:
-            warnings.warn('Could not move {} to {} ({}). It will be downloaded '
-                          'again when needed.'.format(source, target, exc),
-                          RuntimeWarning, stacklevel=4)
+    warnings.warn(
+        'fastcat 0.3.5 and earlier kept their files in {}, and these are still there: {}. '
+        'fastcat 0.4.0 no longer uses or moves them. Move them into {} (all of them go '
+        'straight in, without the data/ and settings/ folders), or install fastcat 0.3.6 '
+        'and create a FastCat() once, which moves them for you. {}'.format(
+            paths.LEGACY_DIR, ', '.join(found), paths.data_dir(), consequence),
+        RuntimeWarning, stacklevel=3)
 
 
 # Where to look for Redis unless the caller says otherwise. The environment
@@ -119,6 +79,10 @@ DOWNLOAD_CHUNK_SIZE = 1024 * 1024
 
 class DamagedDumpError(RuntimeError):
     """A cached dump turned out to be incomplete or corrupt while loading."""
+
+# Built once: _name() runs twice for every relation in a dump
+_CATEGORY_URI_PREFIXES = {language.id: languages.category_uri_prefix(language)
+                          for language in languages.available_languages.values()}
 
 ntriple_pattern = re.compile(r'^<(.+)> <(.+)> <(.+)> \.\n$')
 ntriple_pattern_wide = re.compile(r'^<(.+)> <(.+)> <(.+)> <(.+)> \.\n$')
@@ -178,6 +142,9 @@ class FastCatBase(object):
             os.replace(partial, skos_file)
 
         except error.HTTPError as http_error:
+            # It holds the response, and with it the connection (#44). The
+            # error message only needs the status.
+            http_error.close()
             raise RuntimeError(
                 'Could not download the SKOS dump for language {!r} from {} '
                 '({}). The {!r} engine may no longer serve this file.'.format(
@@ -229,28 +196,27 @@ class FastCatBase(object):
 
         return digest.hexdigest()
 
-    def _name(self, url_pattern, language):
-        if language == languages.available_languages['English'].id:
-            m = re.search("^http://dbpedia.org/resource/Category:(.+)$", url_pattern)
-        elif language == languages.available_languages['Czech'].id:
-            m = re.search("^http://cs.dbpedia.org/resource/Kategorie:(.+)$", url_pattern)
-        elif language == languages.available_languages['Estonian'].id:
-            m = re.search("^http://et.dbpedia.org/resource/Kategooria:(.+)$", url_pattern)
-        elif language == languages.available_languages['German'].id:
-            m = re.search("^http://de.dbpedia.org/resource/Kategorie:(.+)$", url_pattern)
-        elif language == languages.available_languages['Japanese'].id:
-            m = re.search("^http://ja.dbpedia.org/resource/Category:(.+)$", url_pattern)
-        elif language == languages.available_languages['Polish'].id:
-            m = re.search("^http://pl.dbpedia.org/resource/Kategoria:(.+)$", url_pattern)
-        elif language == languages.available_languages['Portuguese'].id:
-            m = re.search("^http://pt.dbpedia.org/resource/Categoria:(.+)$", url_pattern)
-        elif language == languages.available_languages['Russian'].id:
-            m = re.search("^http://ru.dbpedia.org/resource/Категория:(.+)$", url_pattern)
-        elif language == languages.available_languages['Ukrainian'].id:
-            m = re.search("^http://uk.dbpedia.org/resource/Категорія:(.+)$", url_pattern)
-        else:
-            raise NotImplementedError
-        return parse.unquote(m.group(1).replace("_", " "))
+    def _name(self, url, language):
+        """The category name in a DBpedia resource URI, such as ``Fromage`` in
+        ``http://fr.dbpedia.org/resource/Catégorie:Fromage``.
+
+        Returns:
+            str: The name, or None if ``url`` is not one of ``language``'s
+            categories.
+
+        Raises:
+            NotImplementedError: fastcat does not support ``language``.
+        """
+        try:
+            prefix = _CATEGORY_URI_PREFIXES[language]
+        except KeyError:
+            raise NotImplementedError(
+                'No category prefix for language {!r}'.format(language)) from None
+
+        if len(url) <= len(prefix) or not url.startswith(prefix):
+            return None
+
+        return parse.unquote(url[len(prefix):].replace("_", " "))
 
 
 class FastCat(FastCatBase):
@@ -299,7 +265,7 @@ class FastCat(FastCatBase):
 
         # Load most recent language-redis mapping
         store.load_settings()
-        _adopt_legacy_dumps_once()
+        _warn_about_legacy_files_once()
 
         # Anything not set here is left at the redis client's own default
         options = {'host': DEFAULT_REDIS_HOST, 'port': DEFAULT_REDIS_PORT}
@@ -501,7 +467,9 @@ class FastCat(FastCatBase):
                 fails or is interrupted, and when the cached dump turns out
                 to be damaged (:class:`DamagedDumpError`). Nothing broken is
                 left in the cache, so calling ``load()`` again downloads the
-                dump afresh.
+                dump afresh. Also raised when no relation in the dump is
+                between the language's categories; the db is then not
+                marked loaded.
         """
         if batch_size < 1:
             raise ValueError(
@@ -592,11 +560,16 @@ class FastCat(FastCatBase):
 
         Raises:
             DamagedDumpError: The dump turned out to be truncated or corrupt.
+            RuntimeError: None of the dump's relations is between categories
+                of ``language``, which points at a wrong category prefix.
         """
         # Buffer the writes: one SADD per triple means a round-trip to Redis
         # per triple, and there are millions of them.
         pipe = self.db.pipeline(transaction=False)
         pending = 0
+
+        # Broader relations found, and loaded
+        relations = inserted = 0
 
         # Progress is tracked in *compressed* bytes consumed. Counting lines up
         # front would mean decompressing the whole dump into memory first,
@@ -649,8 +622,19 @@ class FastCat(FastCatBase):
                         print('p group is not "broader" - {}'.format(p))
                     continue
 
+                relations += 1
                 narrower = self._name(s, language)
                 broader = self._name(o, language)
+
+                if narrower is None or broader is None:
+                    # Not one of this language's categories. No dump fastcat
+                    # knows has any, but a few must not stop a load.
+                    if verbose > 2:
+                        print('Not a {!r} category: {}'.format(
+                            language, s if narrower is None else o))
+                    continue
+
+                inserted += 1
 
                 try:
 
@@ -675,6 +659,14 @@ class FastCat(FastCatBase):
 
         if pending:
             pipe.execute()
+
+        if relations and not inserted:
+            # Every category had another prefix, so this is most likely the
+            # wrong prefix for the language, not a dump without categories
+            raise RuntimeError(
+                'None of the {} broader relations in {} is between {!r} categories '
+                '(URIs starting {}), so nothing was loaded.'.format(
+                    relations, skos_file, language, _CATEGORY_URI_PREFIXES[language]))
 
         if progress_bar:
             print_progress_bar(total_bytes, total_bytes, prefix='Progress:',
