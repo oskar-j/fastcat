@@ -182,13 +182,20 @@ prefix (`Kategorie:` for German).
 | Language | Code | Also accepted | Prefix you leave off |
 | --- | --- | --- | --- |
 | Czech | `cs` | `cze` | `Kategorie:` |
+| Dutch | `nl` | `dut`, `nl-NL`, `nl-BE` | `Categorie:` |
 | English | `en` | `eng`, `en-GB`, `en-US`, `en-CA`, `en-NZ` | `Category:` |
 | Estonian | `et` | `est` | `Kategooria:` |
+| Finnish | `fi` | `fin`, `fi-FI` | `Luokka:` |
+| French | `fr` | `fre`, `fr-FR`, `fr-BE`, `fr-CA`, `fr-CH` | `Catégorie:` |
 | German | `de` | `ger`, `de-DE` | `Kategorie:` |
+| Hungarian | `hu` | `hun`, `hu-HU` | `Kategória:` |
+| Italian | `it` | `ita`, `it-IT`, `it-CH` | `Categoria:` |
 | Japanese | `ja` | `jpn`, `ja-JP` | `Category:` |
 | Polish | `pl` | `pol`, `pl-PL` | `Kategoria:` |
 | Portuguese | `pt` | `por`, `pt-PT`, `pt-BR` | `Categoria:` |
 | Russian | `ru` | `rus`, `ru-RU` | `Категория:` |
+| Spanish | `es` | `spa`, `es-ES`, `es-MX`, `es-AR`, `es-US` | `Categoría:` |
+| Swedish | `sv` | `swe`, `sv-SE`, `sv-FI` | `Kategori:` |
 | Ukrainian | `ua` | `uk`, `ukr`, `uk-UA` | `Категорія:` |
 
 Codes are case-insensitive, and `_` works in place of `-` (`pt_BR`). They are
@@ -356,11 +363,13 @@ writes nothing, so a read-only install works. Every virtual environment on the
 machine shares the directory, and so the downloads and the mapping. Delete a
 dump to force a fresh download.
 
-Up to `0.3.5` these files lived inside the installed package. The first
-`FastCat()` of a newer version moves them over, and merges the old mapping into
-one already there. If the two give a db to different languages, the old one is
-left where it is, with a warning. Files on another filesystem, which may be a
-volume, are copied and the originals kept.
+Up to `0.3.5` these files lived inside the installed package. `0.3.6` moved
+them over on its first `FastCat()`. Since `0.4.0`, fastcat no longer moves
+them; it only warns if it finds any left there. Upgrading from `0.3.5` or
+earlier, install `0.3.6` and create a `FastCat()` once first, or move the files
+yourself: the dumps from the package's `data/` folder and `redis_ids.pickle`
+from its `settings/` folder all go straight into the directory above. Without
+the old mapping, a language may be given a db that already holds another one.
 
 A download only takes its name once it is complete, so an interrupted one
 (Ctrl-C, a dropped connection, 60 seconds without data) leaves nothing behind,
@@ -410,7 +419,7 @@ Q&A
 #### How well is it tested?
 
 The offline unit tests run on every push and pull request, on Python `3.10`
-through `3.14`. The integration tests load a real dump for each of the nine
+through `3.14`. The integration tests load a real dump for each of the sixteen
 languages and check a known broader/narrower pair in each
 ([`tests/language_cases.py`](https://github.com/oskar-j/fastcat/blob/master/tests/language_cases.py)).
 Feedback is still very welcome under [ticket #7](https://github.com/oskar-j/fastcat/issues/7).
@@ -425,8 +434,9 @@ the cost of **data that stops in 2016**, so pass `engine='databus'` for current
 categories.
 
 Each language takes one of Redis's numbered databases, of which there are 16
-by default, so that is also the cap on languages. Last but not least, each
-language means a one-off download of up to ~45 MB.
+by default, so that is also the cap on languages, and the sixteen supported
+ones fill all of them. Last but not least, each language means a one-off
+download of up to ~45 MB.
 
 #### Which Python versions are supported?
 
@@ -436,23 +446,26 @@ interpreter, pin `fastcat==0.1.2`.
 
 #### Which languages are supported?
 
-The nine in the [table above](#currently-supported-languages-and-their-codes).
+The sixteen in the [table above](#currently-supported-languages-and-their-codes).
 From code, `FastCat.get_supported_languages()` returns their names:
 
 ```python
 >>> fastcat.FastCat.get_supported_languages()
-dict_keys(['Czech', 'English', 'Estonian', 'German', 'Japanese', 'Polish', 'Portuguese', 'Russian', 'Ukrainian'])
+dict_keys(['Czech', 'Dutch', 'English', 'Estonian', 'Finnish', 'French', 'German', 'Hungarian', 'Italian', 'Japanese', 'Polish', 'Portuguese', 'Russian', 'Spanish', 'Swedish', 'Ukrainian'])
 ```
 
-Adding one takes an entry in `src/fastcat/lang.py`, a category-prefix pattern
-in `src/fastcat/interface.py` and a known relation in `tests/language_cases.py`.
-If your language is missing, an [issue](https://github.com/oskar-j/fastcat/issues)
-or a pull request is very welcome.
+Adding one takes an entry in `src/fastcat/lang.py`, with its category prefix,
+plus a known relation in `tests/language_cases.py` and a URL in
+`tests/test_names.py`. Those sixteen take all of Redis's databases, though, so
+more languages wait for [#39](https://github.com/oskar-j/fastcat/issues/39),
+which keeps them all in one. If your language is missing, an
+[issue](https://github.com/oskar-j/fastcat/issues) is very welcome.
 
 #### What's coming next?
 
-Support for the rest of the European languages. Exporting an n-level tree of
-categories to a CSV or GraphML file.
+More languages, once they can share a Redis database
+([#39](https://github.com/oskar-j/fastcat/issues/39)). Exporting an n-level tree
+of categories to a CSV or GraphML file.
 
 License
 -------
