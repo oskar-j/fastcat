@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-10-25
+
+### Fixed
+
+- `import fastcat` works on a read-only install, such as a system-wide one
+  used by another account, a Docker image that runs as a non-root user, or
+  the Nix store. The import used to create `data/` and `settings/` inside the
+  package, and failed with a `PermissionError` where it couldn't. Now nothing
+  is written until a file has to be
+  ([#33](https://github.com/oskar-j/fastcat/issues/33)).
+
+### Changed
+
+- Downloaded dumps and the language → Redis db mapping live in the user's
+  cache directory instead of the installed package: `~/.cache/fastcat` on
+  Linux (or `$XDG_CACHE_HOME/fastcat`), `~/Library/Caches/fastcat` on macOS
+  and `%LOCALAPPDATA%\fastcat\Cache` on Windows. Every environment on a
+  machine now shares one set of downloads and one mapping, and they are easy
+  to find ([#33](https://github.com/oskar-j/fastcat/issues/33)).
+  - **Another directory:** set the `FASTCAT_DATA_DIR` environment variable.
+    It is read whenever fastcat needs the directory, so setting it from code
+    works too.
+  - **Created on first use:** the directory appears when the first dump is
+    downloaded, or the first language other than English is given a db. If
+    it can't be written to, that step raises a `RuntimeError` naming
+    `FASTCAT_DATA_DIR`, and no db is given out.
+  - **Moved over:** the first `FastCat()` moves the files 0.3.5 and earlier
+    left in the package. A mapping already in the cache directory is merged
+    with the old one. If the two give a db to different languages, the old
+    one is left in place and a `RuntimeWarning` shows both. Files on
+    another filesystem, which may be a volume, are copied and the originals
+    kept.
+  - **`docker-compose.yml`:** the `fastcat` service keeps its files in
+    `/var/cache/fastcat`, on the same `skos-data` volume as before, so the
+    dumps already in it are used as they are. The `skos-settings` volume
+    stays mounted at the old path for now, so its mapping is moved over.
+
+### Added
+
+- `FastCat.get_data_dir()` returns the directory fastcat keeps its files in.
+
 ## [0.3.5] - 2026-10-24
 
 ### Fixed
@@ -347,7 +388,8 @@ No library code changed in this release; it is packaging and CI only.
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.5...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.6...HEAD
+[0.3.6]: https://github.com/oskar-j/fastcat/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/oskar-j/fastcat/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/oskar-j/fastcat/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/oskar-j/fastcat/compare/v0.3.2...v0.3.3

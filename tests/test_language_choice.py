@@ -64,7 +64,7 @@ def test_an_unknown_language_is_rejected_before_the_store_is_touched(isolated_st
         FastCat(language=language)
 
     assert isolated_store.languages == {'en': 0}
-    assert not os.path.exists(isolated_store.settings_filename)
+    assert not os.path.exists(isolated_store.settings_file())
 
 
 def test_switching_to_an_unknown_language_is_rejected(isolated_store):

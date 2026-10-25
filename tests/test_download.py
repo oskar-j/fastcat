@@ -102,12 +102,10 @@ class DumpServer:
 
 
 @pytest.fixture
-def server(tmp_path, monkeypatch, isolated_store):
-    """A dump server, with fastcat's cache pointed at tmp_path."""
+def server(monkeypatch, isolated_store):
+    """A dump server. fastcat's data directory is tmp_path (see conftest)."""
     dumps = DumpServer()
 
-    monkeypatch.setattr(interface, 'skos_file_pattern',
-                        str(tmp_path / 'skos-%engine%-%lang%.nt.bz2'))
     monkeypatch.setattr(interface, 'skos_source',
                         lambda mapping, engine: DownloadSource(url=dumps.url,
                                                                sha256=dumps.sha256))
@@ -249,3 +247,41 @@ def test_a_damaged_cached_dump_is_deleted_then_downloaded_again(server, tmp_path
 def test_a_damaged_dump_is_still_a_runtime_error():
     # Callers catching RuntimeError around load() keep working
     assert issubclass(DamagedDumpError, RuntimeError)
+
+
+# --- the data directory (#33) ---------------------------------------------------
+
+def test_the_data_directory_is_created_by_the_first_download(server, tmp_path, monkeypatch):
+    monkeypatch.setenv('FASTCAT_DATA_DIR', str(tmp_path / 'a' / 'b'))
+
+    _load()
+
+    assert os.listdir(tmp_path / 'a' / 'b') == [CACHED_NAME]
+
+
+def test_a_data_directory_that_cannot_be_created_is_reported(server, tmp_path, monkeypatch):
+    (tmp_path / 'a-file').write_text('')
+    monkeypatch.setenv('FASTCAT_DATA_DIR', str(tmp_path / 'a-file' / 'fastcat'))
+
+    with pytest.raises(RuntimeError, match='cannot write to its data directory .*FASTCAT_DATA_DIR'):
+        _load()
+
+    assert server.requests == 0
+
+
+@pytest.mark.skipif(os.name == 'nt' or (hasattr(os, 'geteuid') and os.geteuid() == 0),
+                    reason='POSIX permission bits, which root ignores')
+def test_a_read_only_data_directory_is_reported(server, tmp_path, monkeypatch):
+    directory = tmp_path / 'read-only'
+    directory.mkdir()
+    directory.chmod(0o555)
+    monkeypatch.setenv('FASTCAT_DATA_DIR', str(directory))
+
+    try:
+        with pytest.raises(RuntimeError, match='cannot write to its data directory .*FASTCAT_DATA_DIR'):
+            _load()
+    finally:
+        directory.chmod(0o755)
+
+    assert server.requests == 0
+    assert os.listdir(directory) == []

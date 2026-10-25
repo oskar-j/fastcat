@@ -28,10 +28,14 @@ services:
     environment:
       FASTCAT_REDIS_HOST: redis
       FASTCAT_REDIS_PORT: "6379"
+      FASTCAT_DATA_DIR: /var/cache/fastcat
     volumes:
-      # Cache the downloaded SKOS dumps and the language -> db-slot mapping
-      # outside the container.
-      - skos-data:/app/src/fastcat/data
+      # Keep the downloaded SKOS dumps and the language -> db-slot mapping
+      # across runs. Up to 0.3.5 this volume was mounted on the package's
+      # data/ directory, so the dumps already in it are used as they are.
+      - skos-data:/var/cache/fastcat
+      # Where 0.3.5 and earlier kept the mapping. Still mounted so that fastcat
+      # moves it into the volume above; it can go in 0.4.0.
       - skos-settings:/app/src/fastcat/settings
 
 volumes:

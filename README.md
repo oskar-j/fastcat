@@ -331,12 +331,38 @@ downloaded. Before `0.2.4` the same Czech load took 91.5s and English held
 | `progress_bar` | `True` | Draw a progress bar while loading. |
 | `verbose` | `False` | Print what is happening; `2` and up print every relation. |
 
-Downloaded dumps are cached inside the installed package, as
-`fastcat/data/skos-<engine>-<language>.nt.bz2`, and the language → Redis db
-mapping is pickled next to them in `fastcat/settings/`. Delete a dump to force
-a fresh download.
+#### Where fastcat keeps its files
 
-A download only takes that name once it is complete, so an interrupted one
+Downloaded dumps (`skos-<engine>-<language>.nt.bz2`) and the language → Redis
+db mapping (`redis_ids.pickle`) live in your user cache directory:
+
+| System | Directory |
+| --- | --- |
+| Linux | `~/.cache/fastcat`, or `$XDG_CACHE_HOME/fastcat` |
+| macOS | `~/Library/Caches/fastcat` |
+| Windows | `%LOCALAPPDATA%\fastcat\Cache` |
+
+Set the `FASTCAT_DATA_DIR` environment variable to use another directory, such
+as a volume in a container. `FastCat.get_data_dir()` tells you which one is in
+use:
+
+```python
+>>> fastcat.FastCat.get_data_dir()
+'/home/you/.cache/fastcat'
+```
+
+fastcat creates the directory when it first writes a file there. Importing it
+writes nothing, so a read-only install works. Every virtual environment on the
+machine shares the directory, and so the downloads and the mapping. Delete a
+dump to force a fresh download.
+
+Up to `0.3.5` these files lived inside the installed package. The first
+`FastCat()` of a newer version moves them over, and merges the old mapping into
+one already there. If the two give a db to different languages, the old one is
+left where it is, with a warning. Files on another filesystem, which may be a
+volume, are copied and the originals kept.
+
+A download only takes its name once it is complete, so an interrupted one
 (Ctrl-C, a dropped connection, 60 seconds without data) leaves nothing behind,
 and the next `load()` starts it again. If a cached dump turns out to be damaged
 while loading, fastcat deletes it and raises `DamagedDumpError`, a
@@ -426,9 +452,7 @@ or a pull request is very welcome.
 #### What's coming next?
 
 Support for the rest of the European languages. Exporting an n-level tree of
-categories to a CSV or GraphML file. Moving the downloaded dumps and the
-language mapping out of the package directory into a proper user cache
-directory.
+categories to a CSV or GraphML file.
 
 License
 -------
