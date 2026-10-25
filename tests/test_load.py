@@ -165,3 +165,37 @@ def test_an_already_loaded_language_is_not_reloaded(client, dump_path):
 def test_a_meaningless_batch_size_is_rejected(client, dump_path, batch_size):
     with pytest.raises(ValueError):
         FastCat(db=client).load(language='en', progress_bar=False, batch_size=batch_size)
+
+
+# --- categories of another language (#35) -------------------------------------
+
+def _load_lines(tmp_path, monkeypatch, client, lines):
+    path = _dump(tmp_path, lines, name='fr.nt.bz2')
+    monkeypatch.setattr(interface, 'skos_file_for', lambda language, engine: path)
+    FastCat(db=client, language='fr').load(progress_bar=False)
+
+
+FR = 'http://fr.dbpedia.org/resource/Catégorie:'
+
+
+def test_a_relation_with_another_prefix_is_skipped(client, tmp_path, monkeypatch):
+    _load_lines(tmp_path, monkeypatch, client, [
+        '<{c}Fromage_fermier> <{b}> <{c}Fromage> .\n'.format(c=FR, b=BROADER),
+        '<{r}Berlin> <{b}> <{c}Fromage> .\n'.format(r=RESOURCE, c=FR, b=BROADER),
+    ])
+
+    assert client.sets == {'b:Fromage fermier': {'Fromage'}, 'n:Fromage': {'Fromage fermier'}}
+    assert client.flags['loaded-skos'] == '1'
+
+
+def test_a_dump_with_none_of_the_languages_categories_is_not_marked_loaded(
+        client, tmp_path, monkeypatch):
+    # What a wrong category prefix in lang.py would look like
+    with pytest.raises(RuntimeError, match="None of the 2 broader relations .* 'fr' categories"):
+        _load_lines(tmp_path, monkeypatch, client, [
+            '<{r}Berlin> <{b}> <{r}Deutschland> .\n'.format(r=RESOURCE, b=BROADER),
+            '<{r}Paris> <{b}> <{r}France> .\n'.format(r=RESOURCE, b=BROADER),
+        ])
+
+    assert client.sets == {}
+    assert 'loaded-skos' not in client.flags

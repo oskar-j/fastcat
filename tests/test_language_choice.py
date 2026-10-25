@@ -58,7 +58,7 @@ def test_every_spelling_of_ukrainian_shares_one_db(isolated_store, spelling):
     assert isolated_store.languages == {'en': 0, 'ua': 1}
 
 
-@pytest.mark.parametrize('language', ['fr', 'kl', 'english', ''])
+@pytest.mark.parametrize('language', ['da', 'kl', 'english', ''])
 def test_an_unknown_language_is_rejected_before_the_store_is_touched(isolated_store, language):
     with pytest.raises(ValueError, match='Unsupported language'):
         FastCat(language=language)
@@ -71,7 +71,7 @@ def test_switching_to_an_unknown_language_is_rejected(isolated_store):
     f = FastCat()
 
     with pytest.raises(ValueError, match='Unsupported language'):
-        f.switch_language('fr')
+        f.switch_language('da')
 
     assert _db_index(f) == 0
     assert isolated_store.languages == {'en': 0}
@@ -88,7 +88,7 @@ def test_switching_accepts_an_alias(isolated_store):
 
 def test_loading_an_unknown_language_is_rejected_before_redis_is_used(isolated_store):
     with pytest.raises(ValueError, match='Unsupported language'):
-        FastCat(db=UntouchableRedis()).load(language='fr', progress_bar=False)
+        FastCat(db=UntouchableRedis()).load(language='da', progress_bar=False)
 
 
 def test_loading_by_alias_uses_the_language_id(isolated_store, tmp_path, monkeypatch):

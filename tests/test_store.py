@@ -45,7 +45,7 @@ def test_unassigned_slot_resolves_to_none(isolated_store):
     assert isolated_store.get_language(slot=15) is None
 
 
-@pytest.mark.parametrize('key', [None, 'fr', 'uk', 'pt-BR'])
+@pytest.mark.parametrize('key', [None, 'da', 'uk', 'pt-BR'])
 def test_only_language_ids_are_given_a_slot(isolated_store, key):
     # Unrecognised codes used to reach here as None and were pickled for good,
     # holding a Redis db (#22). Aliases must be normalised before this point.
@@ -58,8 +58,10 @@ def test_only_language_ids_are_given_a_slot(isolated_store, key):
 
 # --- what each language is reported as (#30) ---------------------------------
 
-NAMES = {'cs': 'Czech', 'de': 'German', 'en': 'English', 'et': 'Estonian', 'ja': 'Japanese',
-         'pl': 'Polish', 'pt': 'Portuguese', 'ru': 'Russian', 'ua': 'Ukrainian'}
+NAMES = {'cs': 'Czech', 'de': 'German', 'en': 'English', 'es': 'Spanish', 'et': 'Estonian',
+         'fi': 'Finnish', 'fr': 'French', 'hu': 'Hungarian', 'it': 'Italian', 'ja': 'Japanese',
+         'nl': 'Dutch', 'pl': 'Polish', 'pt': 'Portuguese', 'ru': 'Russian', 'sv': 'Swedish',
+         'ua': 'Ukrainian'}
 
 
 def test_every_supported_language_has_an_expected_name():
@@ -93,3 +95,24 @@ def test_ukrainian_is_resolvable_from_its_slot(isolated_store):
 def test_an_unknown_id_has_no_record():
     # The old country fallback raised IndexError here
     assert store.language_info('zz') is None
+
+
+# --- Redis has 16 dbs (#35) ---------------------------------------------------
+
+def test_every_supported_language_fits_in_redis(isolated_store):
+    for language in supported_language_ids():
+        if language != 'en':
+            isolated_store.save_settings(language)
+
+    assert sorted(isolated_store.languages.values()) == list(range(16))
+
+
+def test_no_db_past_the_last_is_given_out(isolated_store):
+    # A mapping from before 0.3.2 could hold slots for unsupported codes (#22)
+    isolated_store.languages.update({None: 1, 'xx': 15})
+
+    with pytest.raises(RuntimeError, match='Redis has 16 dbs.*none left for \'de\''):
+        isolated_store.save_settings('de')
+
+    assert 'de' not in isolated_store.languages
+    assert not os.path.exists(isolated_store.settings_file())

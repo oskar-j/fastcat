@@ -31,4 +31,20 @@ LANGUAGE_CASES = [
                  'Русские супы', 'Борщ'),
     LanguageCase('ua', 'Київська Русь', 'Київщина',
                  'Київська Русь', 'Київське князівство'),
+    # Added in 0.4.0 (#35). Each pair holds in both the 2016 wiki-archive dump
+    # and the 2022 Databus one.
+    LanguageCase('fr', 'Fromage', 'Produit laitier',
+                 'Fromage', 'Fromage fermier'),
+    LanguageCase('es', 'Madrid', 'Capitales de Europa',
+                 'Madrid', 'Cultura de Madrid'),
+    LanguageCase('it', 'Pizza', 'Cucina italiana',
+                 'Roma', 'Antica Roma'),
+    LanguageCase('sv', 'Stockholm', 'Europas huvudstäder',
+                 'Stockholm', 'Broar i Stockholm'),
+    LanguageCase('nl', 'Amsterdam', 'Gemeente in Noord-Holland',
+                 'Amsterdam', 'Geschiedenis van Amsterdam'),
+    LanguageCase('fi', 'Helsinki', 'Euroopan pääkaupungit',
+                 'Helsinki', 'Helsingin historia'),
+    LanguageCase('hu', 'Csillagászat', 'Természettudományok',
+                 'Budapest', 'Budapest kerületei'),
 ]

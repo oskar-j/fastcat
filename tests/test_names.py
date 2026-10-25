@@ -1,9 +1,9 @@
 """Offline checks on DBpedia resource-URL parsing.
 
 Each DBpedia locale prefixes its category resources differently
-(``Category:``, ``Kategorie:``, ``Категорія:`` ...), so ``_name`` carries one
-regex per language. These tests are what catch a missing branch when a new
-language is added.
+(``Category:``, ``Kategorie:``, ``Категорія:`` ...), so each language in
+``lang.py`` carries its ``category_prefix``. These tests check every one
+against a URL as the dumps write it.
 """
 
 import pytest
@@ -23,6 +23,19 @@ NAME_CASES = [
     ('ru', 'http://ru.dbpedia.org/resource/Категория:Борщ', 'Борщ'),
     ('ua', 'http://uk.dbpedia.org/resource/Категорія:Київська_Русь',
      'Київська Русь'),
+    # Added in 0.4.0 (#35), each prefix as the 2016 and 2022 dumps write it
+    ('fr', 'http://fr.dbpedia.org/resource/Catégorie:Produit_laitier', 'Produit laitier'),
+    ('es', 'http://es.dbpedia.org/resource/Categoría:Capitales_de_Europa',
+     'Capitales de Europa'),
+    ('it', 'http://it.dbpedia.org/resource/Categoria:Cucina_italiana', 'Cucina italiana'),
+    ('sv', 'http://sv.dbpedia.org/resource/Kategori:Europas_huvudstäder',
+     'Europas huvudstäder'),
+    ('nl', 'http://nl.dbpedia.org/resource/Categorie:Gemeente_in_Noord-Holland',
+     'Gemeente in Noord-Holland'),
+    ('fi', 'http://fi.dbpedia.org/resource/Luokka:Euroopan_pääkaupungit',
+     'Euroopan pääkaupungit'),
+    ('hu', 'http://hu.dbpedia.org/resource/Kategória:Természettudományok',
+     'Természettudományok'),
 ]
 
 
@@ -53,8 +66,19 @@ def test_unsupported_language_raises(parser):
         parser._name('http://kl.dbpedia.org/resource/Category:Nuuk', 'kl')
 
 
-def test_every_supported_language_has_a_name_branch(parser):
-    # Guards against adding a language to lang.py while forgetting the regex.
+@pytest.mark.parametrize('url', [
+    # Another language's prefix, an article rather than a category, and a
+    # prefix with nothing after it
+    'http://de.dbpedia.org/resource/Kategorie:Berlin',
+    'http://fr.dbpedia.org/resource/Fromage',
+    'http://fr.dbpedia.org/resource/Catégorie:',
+], ids=['other-language', 'not-a-category', 'no-name'])
+def test_a_url_that_is_not_one_of_the_languages_categories_has_no_name(parser, url):
+    assert parser._name(url, 'fr') is None
+
+
+def test_every_supported_language_has_a_name_case(parser):
+    # Every language in lang.py must be checked against a real URL above.
     import fastcat.lang as languages
 
     covered = {case[0] for case in NAME_CASES}

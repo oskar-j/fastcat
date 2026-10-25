@@ -7,8 +7,8 @@ otherwise. Nothing is created until a file has to be written there. Up to
 created the directories, which failed on a read-only install (#33).
 """
 
+import fnmatch
 import os
-import shutil
 import sys
 import uuid
 
@@ -16,8 +16,12 @@ import uuid
 DATA_DIR_VARIABLE = 'FASTCAT_DATA_DIR'
 
 #: The package directory. Up to 0.3.5, dumps were cached in ``data/`` and the
-#: mapping in ``settings/`` here; :class:`fastcat.FastCat` moves them out.
+#: mapping in ``settings/`` here. 0.3.6 moved them to the data directory, and
+#: fastcat now only warns about any that are left (see :func:`legacy_files`).
 LEGACY_DIR = os.path.dirname(os.path.realpath(__file__))
+
+#: Where in :data:`LEGACY_DIR` 0.3.5 and earlier kept the mapping.
+LEGACY_SETTINGS = os.path.join('settings', 'redis_ids.pickle')
 
 
 def data_dir():
@@ -85,6 +89,28 @@ def unwritable(directory, exc):
             directory, exc, DATA_DIR_VARIABLE))
 
 
+def legacy_files():
+    """The files fastcat 0.3.5 and earlier left in the package directory.
+
+    Returns:
+        list: Their paths relative to :data:`LEGACY_DIR`, such as
+        ``settings/redis_ids.pickle`` and ``data/skos-wiki-archive-en.nt.bz2``.
+    """
+    found = []
+
+    if os.path.isfile(os.path.join(LEGACY_DIR, LEGACY_SETTINGS)):
+        found.append(LEGACY_SETTINGS)
+
+    try:
+        names = os.listdir(os.path.join(LEGACY_DIR, 'data'))
+    except OSError:
+        names = []
+
+    found += [os.path.join('data', name) for name in sorted(names)
+              if fnmatch.fnmatch(name, 'skos-*.nt.bz2')]
+    return found
+
+
 def partial_name(path):
     """A temporary name next to ``path``, for a file that is being written.
 
@@ -98,66 +124,3 @@ def discard(path):
     """Remove a file if it is there."""
     if os.path.isfile(path):
         os.remove(path)
-
-
-def remove_quietly(path):
-    """Remove a file or an empty directory if possible, and never raise.
-
-    For files that are no longer needed but may sit somewhere read-only.
-    """
-    try:
-        if os.path.isdir(path):
-            os.rmdir(path)
-        else:
-            os.remove(path)
-    except OSError:
-        pass
-
-
-def same_filesystem(path, other):
-    """Whether two existing paths are on the same filesystem."""
-    try:
-        return os.stat(path).st_dev == os.stat(other).st_dev
-    except OSError:
-        return False
-
-
-def copy(source, destination):
-    """Copy a file, never leaving part of it at ``destination``.
-
-    Raises:
-        OSError: ``source`` cannot be read or ``destination`` written.
-    """
-    partial = partial_name(destination)
-
-    try:
-        shutil.copyfile(source, partial)
-        os.replace(partial, destination)
-    finally:
-        discard(partial)
-
-
-def move(source, destination):
-    """Move a file on the same filesystem.
-
-    If it cannot be renamed, as in a read-only directory, it is copied, and
-    ``source`` is left in place unless it can be removed.
-
-    Raises:
-        OSError: ``source`` cannot be read or ``destination`` written.
-    """
-    try:
-        os.replace(source, destination)
-        return
-    except OSError:
-        pass
-
-    copy(source, destination)
-    remove_quietly(source)
-
-
-def kept_on_another_filesystem():
-    """Why files were copied, not moved, out of the package directory."""
-    return ('The originals stay where they are, since they are on another '
-            'filesystem. To keep fastcat\'s files on a volume, point {} at '
-            'it.'.format(DATA_DIR_VARIABLE))

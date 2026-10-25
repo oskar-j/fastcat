@@ -33,7 +33,7 @@ import json
 import re
 import time
 from collections import namedtuple
-from urllib import parse, request
+from urllib import error, parse, request
 
 WIKI_ARCHIVE = 'wiki-archive'
 DATABUS = 'databus'
@@ -77,6 +77,10 @@ DATABUS_RETRY_WAIT = 2
 #: OSErrors), a response cut short (http.client.IncompleteRead) and a
 #: half-served body that does not parse as JSON (ValueError).
 _TRANSIENT_ERRORS = (OSError, http.client.HTTPException, ValueError)
+
+#: HTTP errors below 500 that are worth another try too: a request timeout,
+#: and too many requests. Any other 4xx comes back the same every time.
+_TRANSIENT_HTTP_STATUSES = (408, 429)
 
 #: What a download needs: where to get it, and what it should hash to. The
 #: wiki archive publishes no checksums, so ``sha256`` is None there.
@@ -134,6 +138,16 @@ def _fetch(req, what, attempts=DATABUS_ATTEMPTS):
         try:
             with request.urlopen(req, timeout=DATABUS_TIMEOUT) as response:
                 return json.loads(response.read().decode('utf-8'))
+
+        except error.HTTPError as http_error:
+            # It holds the response, and with it the connection (#44). The
+            # error message only needs the status.
+            http_error.close()
+            last_error = http_error
+
+            if http_error.code < 500 and http_error.code not in _TRANSIENT_HTTP_STATUSES:
+                break
+
         except _TRANSIENT_ERRORS as transient:
             last_error = transient
 
@@ -141,8 +155,9 @@ def _fetch(req, what, attempts=DATABUS_ATTEMPTS):
             time.sleep(DATABUS_RETRY_WAIT * attempt)
 
     raise EngineError(
-        'Could not read {} after {} attempts ({!r}).'.format(
-            what, attempts, last_error)) from last_error
+        'Could not read {} after {} ({!r}).'.format(
+            what, '1 attempt' if attempt == 1 else '{} attempts'.format(attempt),
+            last_error)) from last_error
 
 
 def _fetch_json(url, attempts=DATABUS_ATTEMPTS):
