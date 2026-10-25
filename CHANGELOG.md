@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-25
+
+### Added
+
+- Seven more languages, from both engines: French (`fr`), Spanish (`es`),
+  Italian (`it`), Swedish (`sv`), Dutch (`nl`), Finnish (`fi`) and Hungarian
+  (`hu`). That makes sixteen, as many as Redis has dbs, so all of them fit
+  ([#35](https://github.com/oskar-j/fastcat/issues/35)).
+  - **Checked against the data:** each prefix was checked in both the 2016
+    and the 2022 dump, and each language's test pair holds in both.
+  - **Prefixes are data:** a language's category prefix is now part of its
+    entry in `lang.py` (`Language.category_prefix`). Adding a language takes
+    that entry and its test cases, without a regex in `interface.py` too.
+
+### Changed
+
+- **Breaking:** fastcat no longer moves the files that 0.3.5 and earlier left
+  inside the installed package. It warns once per process if it finds any,
+  and doesn't use them.
+  - **Upgrading from 0.3.5 or earlier:** install 0.3.6 and create a
+    `FastCat()` once first, or move the files yourself (see the README).
+    Without the old mapping, a language may be given a db that already holds
+    another one.
+  - **`docker-compose.yml`:** the `skos-settings` volume is no longer
+    mounted. If you used the compose file before 0.3.6 and haven't run
+    0.3.6's since, copy the mapping over first:
+    `docker run --rm -v fastcat_skos-settings:/old:ro -v fastcat_skos-data:/new alpine cp -n /old/redis_ids.pickle /new/`
+- A relation with a category of another prefix is skipped, where it used to
+  stop `load()` with an `AttributeError`. A dump in which no relation
+  matches the language's prefix raises a `RuntimeError` and is not marked
+  loaded.
+- No language is given a db past the 16th (db 15). One used to be handed db
+  16, which Redis answers with `ERR DB index is out of range`; that now
+  raises a `RuntimeError`. Only a mapping with entries left over from before
+  0.3.2 could get that far.
+
+### Fixed
+
+- HTTP errors from DBpedia no longer leave their response and connection
+  open. When a Databus metadata request fails with a 4xx other than 408 and
+  429, fastcat now gives up at once, instead of after three attempts and 6
+  seconds ([#44](https://github.com/oskar-j/fastcat/issues/44)).
+- The test suite fails on any file or connection left open.
+
 ## [0.3.6] - 2026-10-25
 
 ### Fixed
@@ -388,7 +432,8 @@ No library code changed in this release; it is packaging and CI only.
   port to Python 3, support for more than one language (English, German,
   Japanese, Polish, Portuguese), and publication to PyPI.
 
-[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.3.6...HEAD
+[Unreleased]: https://github.com/oskar-j/fastcat/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/oskar-j/fastcat/compare/v0.3.6...v0.4.0
 [0.3.6]: https://github.com/oskar-j/fastcat/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/oskar-j/fastcat/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/oskar-j/fastcat/compare/v0.3.3...v0.3.4
